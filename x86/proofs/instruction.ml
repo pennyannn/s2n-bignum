@@ -260,6 +260,7 @@ let instruction_INDUCTION,instruction_RECURSION = define_type
    | LEA operand bsid
    | LZCNT operand operand
    | MOV operand operand
+   | MOVSB
    | MOVSX operand operand
    | MOVZX operand operand
    | MUL2 (operand#operand) operand
@@ -272,6 +273,7 @@ let instruction_INDUCTION,instruction_RECURSION = define_type
    | PUSH operand
    | RCL operand operand
    | RCR operand operand
+   | REP_MOVSB
    | RET
    | ROL operand operand
    | ROR operand operand

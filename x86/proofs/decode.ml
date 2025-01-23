@@ -413,6 +413,10 @@ let decode_aux = new_definition `!pfxs rex l. decode_aux pfxs rex l =
     else NONE
   | [0x90:8] -> if has_pfxs pfxs then NONE else
     SOME (NOP,l)
+  | [0xa4:8] -> if has_unhandled_pfxs pfxs then NONE else
+    (match pfxs with
+      | (F, Rep0) -> SOME (MOVSB,l)
+      | _ -> NONE)
   | [0b1010100:7; v] -> if has_pfxs pfxs then NONE else
     let sz = op_size T (rex_W rex) v pfxs in
     read_imm (to_wordsize sz) l >>= \(imm,l).

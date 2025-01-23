@@ -735,6 +735,26 @@ let x86_MOV = new_definition
  `x86_MOV dest src s =
         let x = read src s in (dest := x) s`;;
 
+(*In 64-bit mode, the instruction’s default address size is 64 bits.
+  We only care for 64-bit addresses. *)
+let x86_MOVSB = new_definition
+ `x86_MOVSB s =
+    let src_addr = read RSI s in
+    let dest_addr = read RDI s in
+    let x = read (memory :> bytes(src_addr,1)) s in
+    let rsi_inc = 
+      if read DF s 
+      then word ((val src_addr) - 8) 
+      else word ((val src_addr) + 8) in
+    let rdi_inc = 
+      if read DF s 
+      then word ((val dest_addr) - 8)
+      else word ((val dest_addr) + 8) in
+    (RSI := rsi_inc,,
+     RDI := rdi_inc,,
+     memory :> bytes(dest_addr,1) := x) s
+    `;;
+
 (*** These are rare cases with distinct source and destination
  *** operand sizes. There is a 32-bit to 64-bit version of MOVSX(D),
  *** whereas the corresponding MOVZX is not encodable; the operation
@@ -1528,6 +1548,7 @@ let x86_execute = define
          | 32 -> x86_MOV (OPERAND32 dest s) (OPERAND32 src s)
          | 16 -> x86_MOV (OPERAND16 dest s) (OPERAND16 src s)
          | 8 -> x86_MOV (OPERAND8 dest s) (OPERAND8 src s)) s
+    | MOVSB -> (x86_MOV) s
     | MOVSX dest src ->
         (match (operand_size dest,operand_size src) with
            (64,32) -> x86_MOVSX (OPERAND64 dest s) (OPERAND32 src s)
@@ -2390,7 +2411,7 @@ let X86_OPERATION_CLAUSES =
     x86_BT; x86_BTC_ALT; x86_BTR_ALT; x86_BTS_ALT;
     x86_CALL_ALT; x86_CLC; x86_CMC; x86_CMOV; x86_CMP_ALT; x86_DEC;
     x86_DIV2; x86_IMUL; x86_IMUL2; x86_IMUL3; x86_INC; x86_LEA; x86_LZCNT;
-    x86_MOV; x86_MOVSX; x86_MOVZX;
+    x86_MOV; x86_MOVSB; x86_MOVSX; x86_MOVZX;
     x86_MUL2; x86_MULX4; x86_NEG; x86_NOP; x86_NOT; x86_OR;
     x86_POP_ALT; x86_PUSH_ALT; x86_RCL; x86_RCR; x86_RET; x86_ROL; x86_ROR;
     x86_SAR; x86_SBB_ALT; x86_SET; x86_SHL; x86_SHLD; x86_SHR; x86_SHRD;
