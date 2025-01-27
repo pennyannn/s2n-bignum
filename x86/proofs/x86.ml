@@ -162,9 +162,11 @@ let ZF = define `ZF = rflags :> bitelement 6`;;
 
 let SF = define `SF = rflags :> bitelement 7`;;
 
+let DF = define `DF = rflags :> bitelement 10`;;
+
 let OF = define `OF = rflags :> bitelement 11`;;
 
-add_component_alias_thms [CF; PF; AF; ZF; SF; OF];;
+add_component_alias_thms [CF; PF; AF; ZF; SF; DF; OF];;
 
 (* ------------------------------------------------------------------------- *)
 (* Shorthands for the general-purpose registers.                             *)
@@ -1763,7 +1765,7 @@ let x86 = define
 (* ------------------------------------------------------------------------- *)
 
 let SOME_FLAGS = new_definition
- `SOME_FLAGS = [CF; PF; AF; ZF; SF; OF]`;;
+ `SOME_FLAGS = [CF; PF; AF; ZF; SF; DF; OF]`;;
 
 (* ------------------------------------------------------------------------- *)
 (* Standard System V AMD64 ABI as used on modern Unix/Linux/Mac OS.          *)
@@ -2630,7 +2632,8 @@ let X86_VERBOSE_SUBSTEP_TAC (exth1,exth2) subths sname g =
 let DISCARD_FLAGS_TAC =
   DISCARD_MATCHING_ASSUMPTIONS
    [`read CF s = y`; `read PF s = y`; `read AF s = y`;
-    `read ZF s = y`; `read SF s = y`; `read OF s = y`];;
+    `read ZF s = y`; `read SF s = y`; `read DF s = y`;
+    `read OF s = y`];;
 
 let DISCARD_STATE_TAC s =
   DISCARD_ASSUMPTIONS_TAC (vfree_in (mk_var(s,`:x86state`)) o concl);;
@@ -3258,7 +3261,7 @@ let X86_SIMD_SHARPEN_RULE =
   let subfn = subst
    [`MAYCHANGE [RIP] ,,
      MAYCHANGE [RAX; RCX; RDX; RSI; RDI; R8; R9; R10; R11] ,,
-     MAYCHANGE [CF; PF; AF; ZF; SF; OF]`,
+     MAYCHANGE [CF; PF; AF; ZF; SF; DF; OF]`,
     `MAYCHANGE_REGS_AND_FLAGS_PERMITTED_BY_ABI`] in
   fun stdthm tac ->
     let stdthm' = subfn(concl stdthm) in prove(stdthm',tac);;

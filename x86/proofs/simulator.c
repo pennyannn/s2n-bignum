@@ -53,6 +53,7 @@ void print_regs()
   printf("   R14 = 0x%016lx\n",regs[14]);
   printf("   R15 = 0x%016lx\n",regs[15]);
   printf("    OF = %d\n",(regs[4] & (1<<11)) != 0);
+  printf("    DF = %d\n",(regs[4] & (1<<10)) != 0);
   printf("    SF = %d\n",(regs[4] & (1<<7)) != 0);
   printf("    ZF = %d\n",(regs[4] & (1<<6)) != 0);
   printf("    AF = %d\n",(regs[4] & (1<<4)) != 0);

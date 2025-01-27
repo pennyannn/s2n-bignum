@@ -13,8 +13,8 @@ let regfile = new_definition
  `regfile s =
    [val(read RAX s); val(read RCX s); val(read RDX s); val(read RBX s);
     bitval(read CF s) +  4 * bitval(read PF s) + 16 * bitval(read AF s) +
-    64 * bitval(read ZF s) + 128 * bitval(read SF s) +
-    2048 * bitval(read OF s);
+    64 * bitval(read ZF s) + 128 * bitval(read SF s) + 
+    1024 * bitval(read DF s) + 2048 * bitval(read OF s);
     val(read RBP s); val(read RSI s); val(read RDI s); val(read R8 s);
     val(read R9 s); val(read R10 s); val(read R11 s); val(read R12 s);
     val(read R13 s); val(read R14 s); val(read R15 s);
