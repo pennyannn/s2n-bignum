@@ -740,21 +740,21 @@ let x86_MOV = new_definition
 (*In 64-bit mode, the instruction’s default address size is 64 bits.
   We only care for 64-bit addresses. *)
 let x86_MOVSB = new_definition
- `x86_MOVSB s =
-    let src_addr = read RSI s in
-    let dest_addr = read RDI s in
-    let x = read (memory :> bytes(src_addr,1)) s in
-    let rsi_inc = 
-      if read DF s 
-      then word ((val src_addr) - 8) 
-      else word ((val src_addr) + 8) in
-    let rdi_inc = 
-      if read DF s 
-      then word ((val dest_addr) - 8)
-      else word ((val dest_addr) + 8) in
-    (RSI := rsi_inc,,
-     RDI := rdi_inc,,
-     memory :> bytes(dest_addr,1) := x) s
+ `x86_MOVSB (s:x86state) = 
+   let src_addr = read RSI s in 
+   let dst_addr = read RDI s in
+   let x = read (memory :> bytes(src_addr,1)) s in
+   let rsi_inc = 
+     if read DF s
+     then word ((val src_addr) - 8)
+     else word ((val src_addr) + 8) in
+   let rdi_inc = 
+     if read DF s
+     then word ((val dst_addr) - 8)
+     else word ((val dst_addr) + 8) in
+   (RSI := rsi_inc ,,
+    RDI := rdi_inc ,,
+    memory :> bytes(dst_addr,1) := x) s
     `;;
 
 (*** These are rare cases with distinct source and destination
@@ -1550,7 +1550,7 @@ let x86_execute = define
          | 32 -> x86_MOV (OPERAND32 dest s) (OPERAND32 src s)
          | 16 -> x86_MOV (OPERAND16 dest s) (OPERAND16 src s)
          | 8 -> x86_MOV (OPERAND8 dest s) (OPERAND8 src s)) s
-    | MOVSB -> (x86_MOV) s
+    | MOVSB -> x86_MOVSB s
     | MOVSX dest src ->
         (match (operand_size dest,operand_size src) with
            (64,32) -> x86_MOVSX (OPERAND64 dest s) (OPERAND32 src s)
