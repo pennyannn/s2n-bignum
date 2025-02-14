@@ -389,7 +389,10 @@ UNOPT_OBJ = p256/unopt/p256_montjadd.o \
             p384/unopt/p384_montjdouble.o \
             fastmul/unopt/bignum_emontredc_8n_cdiff_base.o
 
-OBJ = $(POINT_OBJ) $(BIGNUM_OBJ)
+AES_XTS_OBJ = aes-xts/aes-xts-armv8.o
+
+# OBJ = $(POINT_OBJ) $(BIGNUM_OBJ) $(AES_XTS_OBJ)
+OBJ = $(AES_XTS_OBJ)
 
 # Tutorial assembly files
 
