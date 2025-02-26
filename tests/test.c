@@ -12850,22 +12850,505 @@ int test_word_recip(void)
 // ****************************************************************************
 
 #define ASSIGN6(x,n0,n1,n2,n3,n4,n5) x[0] = UINT64_C(n0), x[1] = UINT64_C(n1), x[2] = UINT64_C(n2), x[3] = UINT64_C(n3), x[4] = UINT64_C(n4), x[5] = UINT64_C(n5)
-
 #define ASSIGN1(x,n) x[0] = UINT64_C(n)
 
 #define CHECK6(x,n0,n1,n2,n3,n4,n5) \
   if ((x[0] != UINT64_C(n0)) || (x[1] != UINT64_C(n1)) || (x[2] != UINT64_C(n2)) || (x[3] != UINT64_C(n3)) || (x[4] != UINT64_C(n4)) || (x[5] != UINT64_C(n5))) \
   { printf("Failed known value test\n"); ++failures; } else { ++successes; }
-
 #define CHECK1(x,n) \
   if (x[0] != UINT64_C(n)) \
   { printf("Failed known value test\n"); ++failures; } else { ++successes; }
 
-int test_known_values(void)
+int test_known_values_p384(void)
 { int failures = 0, successes = 0;
   printf("Testing known value cases\n");
 
 #include "known_value_tests_p384.h"
+
+  if (failures != 0)
+    { printf ("Failed %d known value tests, passed %d\n",failures,successes);
+      return failures;
+    }
+  else
+    { printf("Successfully passed %d known value tests\n",successes);
+      return 0;
+    }
+}
+
+// TODO: currently hand-written
+int test_known_values_xts_encrypt(void)
+{ int failures = 0, successes = 0;
+  printf("Testing known value cases\n");
+
+  AES_KEY *key1 = (AES_KEY *)malloc(sizeof(AES_KEY));
+  AES_KEY *key2 = (AES_KEY *)malloc(sizeof(AES_KEY));
+  size_t len;
+  uint8_t iv[16];
+  uint8_t in[32];
+  uint8_t out[32];
+
+// https://csrc.nist.gov/projects/cryptographic-algorithm-validation-program/cavp-testing-block-cipher-modes
+// https://legacy.cryptool.org/en/cto/aes-step-by-step
+
+// Test case 0:
+// This test case is from cavp
+// DataUnitLen = 256
+// Key = 1ea661c58d943a0e4801e42f4b0947149e7f9f8e3e68d0c7505210bd311a0e7c d6e13ffdf2418d8d1911c004cda58da3d619b7e2b9141e58318eea392cf41b08
+// i = adf8d92627464ad2f0428e84a9f87564
+// PT = 2eedea52cd8215e1acc647e810bbc364 2e87287f8d2e57e36c0a24fbc12a202e
+// CT = cbaad0e2f6cea3f50b37f934d46a9b13 0b9d54f07e34f36af793e86f73c6d7db
+// roundkeys1 =
+// 1ea661c58d943a0e 4801e42f4b094714 9e7f9f8e3e68d0c7 505210bd311a0e7c
+// bd0d710230994b0c 7898af233391e837 5dfe04146396d4d3 33c4c46e02deca12
+// a279b87592e0f379 ea785c5ad9e9b46d 68e089280b765dfb 38b299953a6c5387
+// f694aff564745c8c 8e0c00d657e5b4bb 333904c2384f5939 00fdc0ac3a91932b
+// 7f485e751b3c02f9 9530022fc2d5b694 163a4ae02e7513d9 2e88d3751419405e
+// bb41068fa07d0476 354d0659f798b0cd 7e7cad5d5009be84 7e816df16a982daf
+// dd997f8d7de47bfb 48a97da2bf31cd6f 76bb10f526b2ae71 5833c38032abee2f
+// ffb16aae82551155 cafc6cf775cda198
+// roundkeys2 =
+// d6e13ffdf2418d8d 1911c004cda58da3 d619b7e2b9141e58 318eea392cf41b08
+// 684e0f8c9a0f8201 831e42054ebbcfa6 f9f33dc640e7239e 7169c9a75d9dd2af
+// 34fb76c0aef4f4c1 2deab6c463517962 02228b6c42c5a8f2 33ac61556e31b3fa
+// f7965b5f5962af9e 7488195a17d96038 f2175b6bb0d2f399 837e92cced4f2136
+// 7b6b5e0a2209f194 5681e8ce415888f6 717d9f29c1af6cb0 42d1fe7caf9edf4a
+// 60f5887342fc79e7 147d9129552519df 8d424bb74ced2707 0e3cd97ba1a20631
+// 7a9a4f41386636a6 2c1ba78f793ebe50 3bf0e5e4771dc2e3 79211b98d8831da9
+// d63e9c20ee58aa86 c2430d09bb7db359
+  in[0]=0x2e;in[1]=0xed;in[2]=0xea;in[3]=0x52;
+  in[4]=0xcd;in[5]=0x82;in[6]=0x15;in[7]=0xe1;
+  in[8]=0xac;in[9]=0xc6;in[10]=0x47;in[11]=0xe8;
+  in[12]=0x10;in[13]=0xbb;in[14]=0xc3;in[15]=0x64;
+  in[16]=0x2e;in[17]=0x87;in[18]=0x28;in[19]=0x7f;
+  in[20]=0x8d;in[21]=0x2e;in[22]=0x57;in[23]=0xe3;
+  in[24]=0x6c;in[25]=0x0a;in[26]=0x24;in[27]=0xfb;
+  in[28]=0xc1;in[29]=0x2a;in[30]=0x20;in[31]=0x2e;
+
+  out[0]=0x00;out[1]=0x00;out[2]=0x00;out[3]=0x00;
+  out[4]=0x00;out[5]=0x00;out[6]=0x00;out[7]=0x00;
+  out[8]=0x00;out[9]=0x00;out[10]=0x00;out[11]=0x00;
+  out[12]=0x00;out[13]=0x00;out[14]=0x00;out[15]=0x00;
+  out[16]=0x00;out[17]=0x00;out[18]=0x00;out[19]=0x00;
+  out[20]=0x00;out[21]=0x00;out[22]=0x00;out[23]=0x00;
+  out[24]=0x00;out[25]=0x00;out[26]=0x00;out[27]=0x00;
+  out[28]=0x00;out[29]=0x00;out[30]=0x00;out[31]=0x00;
+  len = 32;
+
+  key1->rd_key[0]=0x0e3a948dc561a61e; key1->rd_key[1]=0x1447094b2fe40148;
+  key1->rd_key[2]=0xc7d0683e8e9f7f9e; key1->rd_key[3]=0x7c0e1a31bd105250;
+  key1->rd_key[4]=0x0c4b993002710dbd; key1->rd_key[5]=0x37e8913323af9878;
+  key1->rd_key[6]=0xd3d496631404fe5d; key1->rd_key[7]=0x12cade026ec4c433;
+  key1->rd_key[8]=0x79f3e09275b879a2; key1->rd_key[9]=0x6db4e9d95a5c78ea;
+  key1->rd_key[10]=0xfb5d760b2889e068; key1->rd_key[11]=0x87536c3a9599b238;
+  key1->rd_key[12]=0x8c5c7464f5af94f6; key1->rd_key[13]=0xbbb4e557d6000c8e;
+  key1->rd_key[14]=0x39594f38c2043933; key1->rd_key[15]=0x2b93913aacc0fd00;
+  key1->rd_key[16]=0xf9023c1b755e487f; key1->rd_key[17]=0x94b6d5c22f023095;
+  key1->rd_key[18]=0xd913752ee04a3a16; key1->rd_key[19]=0x5e40191475d3882e;
+  key1->rd_key[20]=0x76047da08f0641bb; key1->rd_key[21]=0xcdb098f759064d35;
+  key1->rd_key[22]=0x84be09505dad7c7e; key1->rd_key[23]=0xaf2d986af16d817e;
+  key1->rd_key[24]=0xfb7be47d8d7f99dd; key1->rd_key[25]=0x6fcd31bfa27da948;
+  key1->rd_key[26]=0x71aeb226f510bb76; key1->rd_key[27]=0x2feeab3280c33358;
+  key1->rd_key[28]=0x55115582ae6ab1ff; key1->rd_key[29]=0x98a1cd75f76cfcca;
+
+  key2->rd_key[0]=0x8d8d41f2fd3fe1d6; key2->rd_key[1]=0xa38da5cd04c01119;
+  key2->rd_key[2]=0x581e14b9e2b719d6; key2->rd_key[3]=0x081bf42c39ea8e31;
+  key2->rd_key[4]=0x01820f9a8c0f4e68; key2->rd_key[5]=0xa6cfbb4e05421e83;
+  key2->rd_key[6]=0x9e23e740c63df3f9; key2->rd_key[7]=0xafd29d5da7c96971;
+  key2->rd_key[8]=0xc1f4f4aec076fb34; key2->rd_key[9]=0x62795163c4b6ea2d;
+  key2->rd_key[10]=0xf2a8c5426c8b2202; key2->rd_key[11]=0xfab3316e5561ac33;
+  key2->rd_key[12]=0x9eaf62595f5b96f7; key2->rd_key[13]=0x3860d9175a198874;
+  key2->rd_key[14]=0x99f3d2b06b5b17f2; key2->rd_key[15]=0x36214fedcc927e83;
+  key2->rd_key[16]=0x94f109220a5e6b7b; key2->rd_key[17]=0xf6885841cee88156;
+  key2->rd_key[18]=0xb06cafc1299f7d71; key2->rd_key[19]=0x4adf9eaf7cfed142;
+  key2->rd_key[20]=0xe779fc427388f560; key2->rd_key[21]=0xdf19255529917d14;
+  key2->rd_key[22]=0x0727ed4cb74b428d; key2->rd_key[23]=0x3106a2a17bd93c0e;
+  key2->rd_key[24]=0xa6366638414f9a7a; key2->rd_key[25]=0x50be3e798fa71b2c;
+  key2->rd_key[26]=0xe3c21d77e4e5f03b; key2->rd_key[27]=0xa91d83d8981b2179;
+  key2->rd_key[28]=0x86aa58ee209c3ed6; key2->rd_key[29]=0x59b37dbb090d43c2;
+
+  key1->rounds=13;
+  key2->rounds=13;
+
+  iv[0]=0xad;iv[1]=0xf8;iv[2]=0xd9;iv[3]=0x26;
+  iv[4]=0x27;iv[5]=0x46;iv[6]=0x4a;iv[7]=0xd2;
+  iv[8]=0xf0;iv[9]=0x42;iv[10]=0x8e;iv[11]=0x84;
+  iv[12]=0xa9;iv[13]=0xf8;iv[14]=0x75;iv[15]=0x64;
+
+  aes_hw_xts_encrypt(in,out,len,key1,key2,iv);
+
+  unsigned char res[32]={
+    0xcb, 0xaa, 0xd0, 0xe2, 0xf6, 0xce, 0xa3, 0xf5,\
+    0x0b, 0x37, 0xf9, 0x34, 0xd4, 0x6a, 0x9b, 0x13,\
+    0x0b, 0x9d, 0x54, 0xf0, 0x7e, 0x34, 0xf3, 0x6a, \
+    0xf7, 0x93, 0xe8, 0x6f, 0x73, 0xc6, 0xd7, 0xdb };
+  if (out[0]!=res[0] || out[1]!=res[1] || out[2]!=res[2] || out[3]!=res[3] || \
+      out[4]!=res[4] || out[5]!=res[5] || out[6]!=res[6] || out[7]!=res[7] || \
+      out[8]!=res[8] || out[9]!=res[9] || out[10]!=res[10] || out[11]!=res[11] || \
+      out[12]!=res[12] || out[13]!=res[13] || out[14]!=res[14] || out[15]!=res[15] || \
+      out[16]!=res[16] || out[17]!=res[17] || out[18]!=res[18] || out[19]!=res[19] || \
+      out[20]!=res[20] || out[21]!=res[21] || out[22]!=res[22] || out[23]!=res[23] || \
+      out[24]!=res[24] || out[25]!=res[25] || out[26]!=res[26] || out[27]!=res[27] || \
+      out[28]!=res[28] || out[29]!=res[29] || out[30]!=res[30] || out[31]!=res[31] ) \
+  { printf("Failed known value test\n"); ++failures; } else { ++successes; }
+
+// Test case 1:
+// This test is from aws-lc
+// DataUnitLen = 1block+1byte = 17 bytes
+// Key1 = fffefdfcfbfaf9f8f7f6f5f4f3f2f1f0efeeedecebeae9e8e7e6e5e4e3e2e1e0
+// Key2 = bfbebdbcbbbab9b8b7b6b5b4b3b2b1b0afaeadacabaaa9a8a7a6a5a4a3a2a1a0
+// iv = 9a785634120000000000000000000000
+// PT = 000102030405060708090a0b0c0d0e0f10
+// CT = 7f117752cc598a8b0d81d88af9f9bec8c3
+// roundkey1 =
+// 0xfcfdfeff 0xf8f9fafb 0xf4f5f6f7 0xf0f1f2f3
+// 0xecedeeef 0xe8e9eaeb 0xe4e5e6e7 0xe0e1e2e3
+// 0xed1c0666 0x15e5fc9d 0xe1100a6a 0x11e1f899
+// 0x6e15af01 0x86fc45ea 0x6219a30d 0x82f841ee
+// 0xc50f47e7 0xd0eabb7a 0x31fab110 0x201b4989
+// 0xd9ba94a6 0x5f46d14c 0x3d5f7241 0xbfa733af
+// 0xbc071b20 0x6ceda05a 0x5d17114a 0x7d0c58c3
+// 0x2644fe88 0x79022fc4 0x445d5d85 0xfbfa6e2a
+// 0x590836b7 0x35e596ed 0x68f287a7 0x15fedf64
+// 0x7fff60cb 0x6fd4f0f 0x42a0128a 0xb95a7ca0
+// 0xb95e88b7 0x8cbb1e5a 0xe44999fd 0xf1b74699
+// 0xde563a25 0xd8ab752a 0x9a0b67a0 0x23511b00
+// 0xda785938 0x56c34762 0xb28ade9f 0x433d9806
+// 0xc4717c4a 0x1cda0960 0x86d16ec0 0xa58075c0
+// 0x607e94e5 0x36bdd387 0x84370d18 0xc70a951e
+// roundkey2 =
+// 0xbcbdbebf 0xb8b9babb 0xb4b5b6b7 0xb0b1b2b3
+// 0xacadaeaf 0xa8a9aaab 0xa4a5a6a7 0xa0a1a2a3
+// 0xb65d8c84 0xee4363f 0xba518088 0xae0323b
+// 0xcb4c8d4d 0x63e527e6 0xc7408141 0x67e123e2
+// 0x2ed874a0 0x203c429f 0x9a6dc217 0x908df02c
+// 0xab11013c 0xc8f426da 0xfb4a79b 0x68558479
+// 0x989d88fb 0xb8a1ca64 0x22cc0873 0xb241f85f
+// 0x9c9240f3 0x54666629 0x5bd2c1b2 0x338745cb
+// 0x875e9f9d 0x3fff55f9 0x1d335d8a 0xaf72a5d5
+// 0xe5d246f0 0xb1b420d9 0xea66e16b 0xd9e1a4a0
+// 0x676b67c4 0x5894323d 0x45a76fb7 0xead5ca62
+// 0x62d1325a 0xd3651283 0x3903f3e8 0xe0e25748
+// 0x358affbf 0x6d1ecd82 0x28b9a235 0xc26c6857
+// 0x47817701 0x94e46582 0xade7966a 0x4d05c122
+// 0xa6699487 0xcb775905 0xe3cefb30 0x21a29367
+  in[0]=0x00;in[1]=0x01;in[2]=0x02;in[3]=0x03;
+  in[4]=0x04;in[5]=0x05;in[6]=0x06;in[7]=0x07;
+  in[8]=0x08;in[9]=0x09;in[10]=0x0a;in[11]=0x0b;
+  in[12]=0x0c;in[13]=0x0d;in[14]=0x0e;in[15]=0x0f;
+  in[16]=0x10;
+
+  out[0]=0x00;out[1]=0x00;out[2]=0x00;out[3]=0x00;
+  out[4]=0x00;out[5]=0x00;out[6]=0x00;out[7]=0x00;
+  out[8]=0x00;out[9]=0x00;out[10]=0x00;out[11]=0x00;
+  out[12]=0x00;out[13]=0x00;out[14]=0x00;out[15]=0x00;
+  out[16]=0x00;
+  len = 17;
+
+  key1->rd_key[0]=0xf8f9fafbfcfdfeff; key1->rd_key[1]=0xf0f1f2f3f4f5f6f7;
+  key1->rd_key[2]=0xe8e9eaebecedeeef; key1->rd_key[3]=0xe0e1e2e3e4e5e6e7;
+  key1->rd_key[4]=0x15e5fc9ded1c0666; key1->rd_key[5]=0x11e1f899e1100a6a;
+  key1->rd_key[6]=0x86fc45ea6e15af01; key1->rd_key[7]=0x82f841ee6219a30d;
+  key1->rd_key[8]=0xd0eabb7ac50f47e7; key1->rd_key[9]=0x201b498931fab110;
+  key1->rd_key[10]=0x5f46d14cd9ba94a6; key1->rd_key[11]=0xbfa733af3d5f7241;
+  key1->rd_key[12]=0x6ceda05abc071b20; key1->rd_key[13]=0x7d0c58c35d17114a;
+  key1->rd_key[14]=0x79022fc42644fe88; key1->rd_key[15]=0xfbfa6e2a445d5d85;
+  key1->rd_key[16]=0x35e596ed590836b7; key1->rd_key[17]=0x15fedf6468f287a7;
+  key1->rd_key[18]=0x06fd4f0f7fff60cb; key1->rd_key[19]=0xb95a7ca042a0128a;
+  key1->rd_key[20]=0x8cbb1e5ab95e88b7; key1->rd_key[21]=0xf1b74699e44999fd;
+  key1->rd_key[22]=0xd8ab752ade563a25; key1->rd_key[23]=0x23511b009a0b67a0;
+  key1->rd_key[24]=0x56c34762da785938; key1->rd_key[25]=0x433d9806b28ade9f;
+  key1->rd_key[26]=0x1cda0960c4717c4a; key1->rd_key[27]=0xa58075c086d16ec0;
+  key1->rd_key[28]=0x36bdd387607e94e5; key1->rd_key[29]=0xc70a951e84370d18;
+
+  key2->rd_key[0]=0xb8b9babbbcbdbebf; key2->rd_key[1]=0xb0b1b2b3b4b5b6b7;
+  key2->rd_key[2]=0xa8a9aaabacadaeaf; key2->rd_key[3]=0xa0a1a2a3a4a5a6a7;
+  key2->rd_key[4]=0x0ee4363fb65d8c84; key2->rd_key[5]=0x0ae0323bba518088;
+  key2->rd_key[6]=0x63e527e6cb4c8d4d; key2->rd_key[7]=0x67e123e2c7408141;
+  key2->rd_key[8]=0x203c429f2ed874a0; key2->rd_key[9]=0x908df02c9a6dc217;
+  key2->rd_key[10]=0xc8f426daab11013c; key2->rd_key[11]=0x685584790fb4a79b;
+  key2->rd_key[12]=0xb8a1ca64989d88fb; key2->rd_key[13]=0xb241f85f22cc0873;
+  key2->rd_key[14]=0x546666299c9240f3; key2->rd_key[15]=0x338745cb5bd2c1b2;
+  key2->rd_key[16]=0x3fff55f9875e9f9d; key2->rd_key[17]=0xaf72a5d51d335d8a;
+  key2->rd_key[18]=0xb1b420d9e5d246f0; key2->rd_key[19]=0xd9e1a4a0ea66e16b;
+  key2->rd_key[20]=0x5894323d676b67c4; key2->rd_key[21]=0xead5ca6245a76fb7;
+  key2->rd_key[22]=0xd365128362d1325a; key2->rd_key[23]=0xe0e257483903f3e8;
+  key2->rd_key[24]=0x6d1ecd82358affbf; key2->rd_key[25]=0xc26c685728b9a235;
+  key2->rd_key[26]=0x94e4658247817701; key2->rd_key[27]=0x4d05c122ade7966a;
+  key2->rd_key[28]=0xcb775905a6699487; key2->rd_key[29]=0x21a29367e3cefb30;
+
+  key1->rounds=13;
+  key2->rounds=13;
+
+  iv[0]=0x9a;iv[1]=0x78;iv[2]=0x56;iv[3]=0x34;
+  iv[4]=0x12;iv[5]=0x00;iv[6]=0x00;iv[7]=0x00;
+  iv[8]=0x00;iv[9]=0x00;iv[10]=0x00;iv[11]=0x00;
+  iv[12]=0x00;iv[13]=0x00;iv[14]=0x00;iv[15]=0x00;
+
+  aes_hw_xts_encrypt(in,out,len,key1,key2,iv);
+
+  res[0]=0x7f;res[1]=0x11;res[2]=0x77;res[3]=0x52;
+  res[4]=0xcc;res[5]=0x59;res[6]=0x8a;res[7]=0x8b;
+  res[8]=0x0d;res[9]=0x81;res[10]=0xd8;res[11]=0x8a;
+  res[12]=0xf9;res[13]=0xf9;res[14]=0xbe;res[15]=0xc8;
+  res[16]=0xc3;
+  if (out[0]!=res[0] || out[1]!=res[1] || out[2]!=res[2] || out[3]!=res[3] || \
+      out[4]!=res[4] || out[5]!=res[5] || out[6]!=res[6] || out[7]!=res[7] || \
+      out[8]!=res[8] || out[9]!=res[9] || out[10]!=res[10] || out[11]!=res[11] || \
+      out[12]!=res[12] || out[13]!=res[13] || out[14]!=res[14] || out[15]!=res[15] || \
+      out[16]!=res[16] ) \
+  { printf("Failed known value test\n"); ++failures; } else { ++successes; }
+
+  if (failures != 0)
+    { printf ("Failed %d known value tests, passed %d\n",failures,successes);
+      return failures;
+    }
+  else
+    { printf("Successfully passed %d known value tests\n",successes);
+      return 0;
+    }
+}
+
+// TODO: currently hand-written
+int test_known_values_xts_decrypt(void)
+{ int failures = 0, successes = 0;
+  printf("Testing known value cases\n");
+
+  AES_KEY *key1 = (AES_KEY *)malloc(sizeof(AES_KEY));
+  AES_KEY *key2 = (AES_KEY *)malloc(sizeof(AES_KEY));
+  size_t len;
+  uint8_t iv[16];
+  uint8_t in[32];
+  uint8_t out[32];
+  uint8_t res[32];
+
+// https://csrc.nist.gov/projects/cryptographic-algorithm-validation-program/cavp-testing-block-cipher-modes
+// https://legacy.cryptool.org/en/cto/aes-step-by-step
+
+// Test case 0:
+// This test case is from cavp
+// DataUnitLen = 256
+// Key = d6c4cf73c639e025654dd3232fe3aa7138f21bc8922271b4a6c0af999100b6b5 e380ec7ec8da88e6816cd7f4f26e7ac0f86e4caac3be55234ebcd4347cda2fa5
+// i = 041f 41fa 30b7 8898 040b 5e0e cba2 7d2b
+// CT = d083 f37a 6160 ac25 c322 9800 ae07 21d9 4bf6 a9ff 2f73 a418 544e 6c78 7cbc d34a
+// PT = b8f3 3dd3 8c13 8dac a227 728e 19b6 2c4a d5ad 516e e2c3 af34 3109 7ff2 8195 6d7d
+// roundkeys1 =
+// 0xd2183c0e 0xc88393fc 0x3d1839ee 0x7778f9c
+// 0x1fb94c32 0x75cca9b7 0xf2559e12 0x496b5e58
+// 0x6b42fc59 0x555b4391 0x7b699357 0xd9c46ce0
+// 0x1cc1cdee 0x6a75e585 0x879937a5 0xbb3ec04a
+// 0xf77036ab 0x3e19bfc8 0x2e32d0c6 0xa2adffb7
+// 0xe62fd39d 0x76b4286b 0xedecd220 0x3ca7f7ef
+// 0xc7a88594 0xc9698963 0x102b6f0e 0x8c9f2f71
+// 0xabcadf28 0x909bfbf6 0x9b58fa4b 0xd14b25cf
+// 0x57bd0ac4 0xec10cf7 0xd942e66d 0x9cb4407f
+// 0x75c28615 0x3b5124de 0xbc301bd 0x4a13df84
+// 0x99076103 0x597c0633 0xd783ea9a 0x45f6a612
+// 0x2822b873 0x4e93a2cb 0x30922563 0x41d0de39
+// 0xb963767a 0xc07b6730 0x8effeca9 0x92754c88
+// 0xafb02ea 0x66b11ab8 0x7e0187a8 0x7142fb5a
+// 0x73cfc4d6 0x25e039c6 0x23d34d65 0x71aae32f
+// roundkeys2 =
+// 0x7eec80e3 0xe688dac8 0xf4d76c81 0xc07a6ef2
+// 0xaa4c6ef8 0x2355bec3 0x34d4bc4e 0xa52fda7c
+// 0x6eea95b5 0x88624f7d 0x7cb523fc 0xbccf4d0e
+// 0xcfc68d53 0xec933390 0xd8478fde 0x7d6855a2
+// 0x5415d04b 0xdc779f36 0xa0c2bcca 0x1c0df1c4
+// 0x53112c4f 0xbf821fdf 0x67c59001 0x1aadc5a3
+// 0x5eb745e9 0x82c0dadf 0x22026615 0x3e0f97d1
+// 0xe167a471 0x5ee5bbae 0x39202baf 0x238dee0c
+// 0xa09118c9 0x2251c216 0x53a403 0x3e5c33d2
+// 0x532d67c4 0xdc8dc6a 0x34e8f7c5 0x176519c9
+// 0x7d61550d 0x5f30971b 0x5f633318 0x613f00ca
+// 0xbc5804b0 0xb190d8da 0x85782f1f 0x921d36d6
+// 0x8b2ef128 0xd41e6633 0x8b7d552b 0xea4255e1
+// 0x3b74f848 0x8ae42092 0xf9c0f8d 0x9d81395b
+// 0xb270fd7a 0x666e9b49 0xed13ce62 0x7519b83
+
+  in[0]=0xd0;in[1]=0x83;in[2]=0xf3;in[3]=0x7a;
+  in[4]=0x61;in[5]=0x60;in[6]=0xac;in[7]=0x25;
+  in[8]=0xc3;in[9]=0x22;in[10]=0x98;in[11]=0x00;
+  in[12]=0xae;in[13]=0x07;in[14]=0x21;in[15]=0xd9;
+  in[16]=0x4b;in[17]=0xf6;in[18]=0xa9;in[19]=0xff;
+  in[20]=0x2f;in[21]=0x73;in[22]=0xa4;in[23]=0x18;
+  in[24]=0x54;in[25]=0x4e;in[26]=0x6c;in[27]=0x78;
+  in[28]=0x7c;in[29]=0xbc;in[30]=0xd3;in[31]=0x4a;
+
+  out[0]=0x00;out[1]=0x00;out[2]=0x00;out[3]=0x00;
+  out[4]=0x00;out[5]=0x00;out[6]=0x00;out[7]=0x00;
+  out[8]=0x00;out[9]=0x00;out[10]=0x00;out[11]=0x00;
+  out[12]=0x00;out[13]=0x00;out[14]=0x00;out[15]=0x00;
+  out[16]=0x00;out[17]=0x00;out[18]=0x00;out[19]=0x00;
+  out[20]=0x00;out[21]=0x00;out[22]=0x00;out[23]=0x00;
+  out[24]=0x00;out[25]=0x00;out[26]=0x00;out[27]=0x00;
+  out[28]=0x00;out[29]=0x00;out[30]=0x00;out[31]=0x00;
+  len = 32;
+
+  key1->rd_key[0]=0xc88393fcd2183c0e; key1->rd_key[1]=0x07778f9c3d1839ee;
+  key1->rd_key[2]=0x75cca9b71fb94c32; key1->rd_key[3]=0x496b5e58f2559e12;
+  key1->rd_key[4]=0x555b43916b42fc59; key1->rd_key[5]=0xd9c46ce07b699357;
+  key1->rd_key[6]=0x6a75e5851cc1cdee; key1->rd_key[7]=0xbb3ec04a879937a5;
+  key1->rd_key[8]=0x3e19bfc8f77036ab; key1->rd_key[9]=0xa2adffb72e32d0c6;
+  key1->rd_key[10]=0x76b4286be62fd39d; key1->rd_key[11]=0x3ca7f7efedecd220;
+  key1->rd_key[12]=0xc9698963c7a88594; key1->rd_key[13]=0x8c9f2f71102b6f0e;
+  key1->rd_key[14]=0x909bfbf6abcadf28; key1->rd_key[15]=0xd14b25cf9b58fa4b;
+  key1->rd_key[16]=0x0ec10cf757bd0ac4; key1->rd_key[17]=0x9cb4407fd942e66d;
+  key1->rd_key[18]=0x3b5124de75c28615; key1->rd_key[19]=0x4a13df840bc301bd;
+  key1->rd_key[20]=0x597c063399076103; key1->rd_key[21]=0x45f6a612d783ea9a;
+  key1->rd_key[22]=0x4e93a2cb2822b873; key1->rd_key[23]=0x41d0de3930922563;
+  key1->rd_key[24]=0xc07b6730b963767a; key1->rd_key[25]=0x92754c888effeca9;
+  key1->rd_key[26]=0x66b11ab80afb02ea; key1->rd_key[27]=0x7142fb5a7e0187a8;
+  key1->rd_key[28]=0x25e039c673cfc4d6; key1->rd_key[29]=0x71aae32f23d34d65;
+
+  key2->rd_key[0]=0xe688dac87eec80e3; key2->rd_key[1]=0xc07a6ef2f4d76c81;
+  key2->rd_key[2]=0x2355bec3aa4c6ef8; key2->rd_key[3]=0xa52fda7c34d4bc4e;
+  key2->rd_key[4]=0x88624f7d6eea95b5; key2->rd_key[5]=0xbccf4d0e7cb523fc;
+  key2->rd_key[6]=0xec933390cfc68d53; key2->rd_key[7]=0x7d6855a2d8478fde;
+  key2->rd_key[8]=0xdc779f365415d04b; key2->rd_key[9]=0x1c0df1c4a0c2bcca;
+  key2->rd_key[10]=0xbf821fdf53112c4f; key2->rd_key[11]=0x1aadc5a367c59001;
+  key2->rd_key[12]=0x82c0dadf5eb745e9; key2->rd_key[13]=0x3e0f97d122026615;
+  key2->rd_key[14]=0x5ee5bbaee167a471; key2->rd_key[15]=0x238dee0c39202baf;
+  key2->rd_key[16]=0x2251c216a09118c9; key2->rd_key[17]=0x3e5c33d20053a403;
+  key2->rd_key[18]=0x0dc8dc6a532d67c4; key2->rd_key[19]=0x176519c934e8f7c5;
+  key2->rd_key[20]=0x5f30971b7d61550d; key2->rd_key[21]=0x613f00ca5f633318;
+  key2->rd_key[22]=0xb190d8dabc5804b0; key2->rd_key[23]=0x921d36d685782f1f;
+  key2->rd_key[24]=0xd41e66338b2ef128; key2->rd_key[25]=0xea4255e18b7d552b;
+  key2->rd_key[26]=0x8ae420923b74f848; key2->rd_key[27]=0x9d81395b0f9c0f8d;
+  key2->rd_key[28]=0x666e9b49b270fd7a; key2->rd_key[29]=0x07519b83ed13ce62;
+
+  key1->rounds=13;
+  key2->rounds=13;
+
+  iv[0]=0x04;iv[1]=0x1f;iv[2]=0x41;iv[3]=0xfa;
+  iv[4]=0x30;iv[5]=0xb7;iv[6]=0x88;iv[7]=0x98;
+  iv[8]=0x04;iv[9]=0x0b;iv[10]=0x5e;iv[11]=0x0e;
+  iv[12]=0xcb;iv[13]=0xa2;iv[14]=0x7d;iv[15]=0x2b;
+
+  aes_hw_xts_decrypt(in,out,len,key1,key2,iv);
+
+  res[0]=0xb8;res[1]=0xf3;res[2]=0x3d;res[3]=0xd3;
+  res[4]=0x8c;res[5]=0x13;res[6]=0x8d;res[7]=0xac;
+  res[8]=0xa2;res[9]=0x27;res[10]=0x72;res[11]=0x8e;
+  res[12]=0x19;res[13]=0xb6;res[14]=0x2c;res[15]=0x4a;
+  res[16]=0xd5;res[17]=0xad;res[18]=0x51;res[19]=0x6e;
+  res[20]=0xe2;res[21]=0xc3;res[22]=0xaf;res[23]=0x34;
+  res[24]=0x31;res[25]=0x09;res[26]=0x7f;res[27]=0xf2;
+  res[28]=0x81;res[29]=0x95;res[30]=0x6d;res[31]=0x7d;
+  if (out[0]!=res[0] || out[1]!=res[1] || out[2]!=res[2] || out[3]!=res[3] || \
+      out[4]!=res[4] || out[5]!=res[5] || out[6]!=res[6] || out[7]!=res[7] || \
+      out[8]!=res[8] || out[9]!=res[9] || out[10]!=res[10] || out[11]!=res[11] || \
+      out[12]!=res[12] || out[13]!=res[13] || out[14]!=res[14] || out[15]!=res[15] || \
+      out[16]!=res[16] || out[17]!=res[17] || out[18]!=res[18] || out[19]!=res[19] || \
+      out[20]!=res[20] || out[21]!=res[21] || out[22]!=res[22] || out[23]!=res[23] || \
+      out[24]!=res[24] || out[25]!=res[25] || out[26]!=res[26] || out[27]!=res[27] || \
+      out[28]!=res[28] || out[29]!=res[29] || out[30]!=res[30] || out[31]!=res[31] ) \
+  { printf("Failed known value test\n"); ++failures; } else { ++successes; }
+
+// Test case 1:
+// This test is from aws-lc
+// DataUnitLen = 1block+1byte = 17 bytes
+// Key1 = fffefdfcfbfaf9f8f7f6f5f4f3f2f1f0efeeedecebeae9e8e7e6e5e4e3e2e1e0
+// Key2 = bfbebdbcbbbab9b8b7b6b5b4b3b2b1b0afaeadacabaaa9a8a7a6a5a4a3a2a1a0
+// iv = 9a785634120000000000000000000000
+// PT = 000102030405060708090a0b0c0d0e0f10
+// CT = 7f117752cc598a8b0d81d88af9f9bec8c3
+// roundkey1 =
+// 0x607e94e5 0x36bdd387 0x84370d18 0xc70a951e
+// 0xe21b473d 0x103340cc 0xf74bf6b3 0x7ead95d6
+// 0xbebda060 0x3d0757dd 0xdf3241d5 0x298c296c
+// 0xcdc91c8f 0xf22807f1 0xe778b67f 0x89e66365
+// 0x2340b902 0x83baf7bd 0xe2351608 0xf6be68b9
+// 0x185c513e 0x3fe11b7e 0x1550b18e 0x6e9ed51a
+// 0x336ae76e 0xa0fa4ebf 0x618fe1b5 0x148b7eb1
+// 0x982968cd 0x27bd4a40 0x2ab1aaf0 0x7bce6494
+// 0xd91a6526 0x9390a9d1 0xc175af0a 0x75049f04
+// 0xe7e3085d 0xbf94228d 0xd0ce0b0 0x517fce64
+// 0xa81afe26 0x4a8accf7 0x52e506db 0xb471300e
+// 0xbe94ce31 0x58772ad0 0xb298c23d 0x5c732ed4
+// 0x1463c620 0xe29032d1 0x186fca2c 0xe69436d5
+// 0xe2e7e0e5 0xe6e3e4e1 0xeaefe8ed 0xeeebece9
+// 0xfcfdfeff 0xf8f9fafb 0xf4f5f6f7 0xf0f1f2f3
+// roundkey2 =
+// 0xbcbdbebf 0xb8b9babb 0xb4b5b6b7 0xb0b1b2b3
+// 0xacadaeaf 0xa8a9aaab 0xa4a5a6a7 0xa0a1a2a3
+// 0xb65d8c84 0xee4363f 0xba518088 0xae0323b
+// 0xcb4c8d4d 0x63e527e6 0xc7408141 0x67e123e2
+// 0x2ed874a0 0x203c429f 0x9a6dc217 0x908df02c
+// 0xab11013c 0xc8f426da 0xfb4a79b 0x68558479
+// 0x989d88fb 0xb8a1ca64 0x22cc0873 0xb241f85f
+// 0x9c9240f3 0x54666629 0x5bd2c1b2 0x338745cb
+// 0x875e9f9d 0x3fff55f9 0x1d335d8a 0xaf72a5d5
+// 0xe5d246f0 0xb1b420d9 0xea66e16b 0xd9e1a4a0
+// 0x676b67c4 0x5894323d 0x45a76fb7 0xead5ca62
+// 0x62d1325a 0xd3651283 0x3903f3e8 0xe0e25748
+// 0x358affbf 0x6d1ecd82 0x28b9a235 0xc26c6857
+// 0x47817701 0x94e46582 0xade7966a 0x4d05c122
+// 0xa6699487 0xcb775905 0xe3cefb30 0x21a29367
+  in[0]=0x7f;in[1]=0x11;in[2]=0x77;in[3]=0x52;
+  in[4]=0xcc;in[5]=0x59;in[6]=0x8a;in[7]=0x8b;
+  in[8]=0x0d;in[9]=0x81;in[10]=0xd8;in[11]=0x8a;
+  in[12]=0xf9;in[13]=0xf9;in[14]=0xbe;in[15]=0xc8;
+  in[16]=0xc3;
+
+  out[0]=0x00;out[1]=0x00;out[2]=0x00;out[3]=0x00;
+  out[4]=0x00;out[5]=0x00;out[6]=0x00;out[7]=0x00;
+  out[8]=0x00;out[9]=0x00;out[10]=0x00;out[11]=0x00;
+  out[12]=0x00;out[13]=0x00;out[14]=0x00;out[15]=0x00;
+  out[16]=0x00;
+  len = 17;
+
+  key1->rd_key[0]=0x36bdd387607e94e5; key1->rd_key[1]=0xc70a951e84370d18;
+  key1->rd_key[2]=0x103340cce21b473d; key1->rd_key[3]=0x7ead95d6f74bf6b3;
+  key1->rd_key[4]=0x3d0757ddbebda060; key1->rd_key[5]=0x298c296cdf3241d5;
+  key1->rd_key[6]=0xf22807f1cdc91c8f; key1->rd_key[7]=0x89e66365e778b67f;
+  key1->rd_key[8]=0x83baf7bd2340b902; key1->rd_key[9]=0xf6be68b9e2351608;
+  key1->rd_key[10]=0x3fe11b7e185c513e; key1->rd_key[11]=0x6e9ed51a1550b18e;
+  key1->rd_key[12]=0xa0fa4ebf336ae76e; key1->rd_key[13]=0x148b7eb1618fe1b5;
+  key1->rd_key[14]=0x27bd4a40982968cd; key1->rd_key[15]=0x7bce64942ab1aaf0;
+  key1->rd_key[16]=0x9390a9d1d91a6526; key1->rd_key[17]=0x75049f04c175af0a;
+  key1->rd_key[18]=0xbf94228de7e3085d; key1->rd_key[19]=0x517fce640d0ce0b0;
+  key1->rd_key[20]=0x4a8accf7a81afe26; key1->rd_key[21]=0xb471300e52e506db;
+  key1->rd_key[22]=0x58772ad0be94ce31; key1->rd_key[23]=0x5c732ed4b298c23d;
+  key1->rd_key[24]=0xe29032d11463c620; key1->rd_key[25]=0xe69436d5186fca2c;
+  key1->rd_key[26]=0xe6e3e4e1e2e7e0e5; key1->rd_key[27]=0xeeebece9eaefe8ed;
+  key1->rd_key[28]=0xf8f9fafbfcfdfeff; key1->rd_key[29]=0xf0f1f2f3f4f5f6f7;
+
+  key2->rd_key[0]=0xb8b9babbbcbdbebf; key2->rd_key[1]=0xb0b1b2b3b4b5b6b7;
+  key2->rd_key[2]=0xa8a9aaabacadaeaf; key2->rd_key[3]=0xa0a1a2a3a4a5a6a7;
+  key2->rd_key[4]=0x0ee4363fb65d8c84; key2->rd_key[5]=0x0ae0323bba518088;
+  key2->rd_key[6]=0x63e527e6cb4c8d4d; key2->rd_key[7]=0x67e123e2c7408141;
+  key2->rd_key[8]=0x203c429f2ed874a0; key2->rd_key[9]=0x908df02c9a6dc217;
+  key2->rd_key[10]=0xc8f426daab11013c; key2->rd_key[11]=0x685584790fb4a79b;
+  key2->rd_key[12]=0xb8a1ca64989d88fb; key2->rd_key[13]=0xb241f85f22cc0873;
+  key2->rd_key[14]=0x546666299c9240f3; key2->rd_key[15]=0x338745cb5bd2c1b2;
+  key2->rd_key[16]=0x3fff55f9875e9f9d; key2->rd_key[17]=0xaf72a5d51d335d8a;
+  key2->rd_key[18]=0xb1b420d9e5d246f0; key2->rd_key[19]=0xd9e1a4a0ea66e16b;
+  key2->rd_key[20]=0x5894323d676b67c4; key2->rd_key[21]=0xead5ca6245a76fb7;
+  key2->rd_key[22]=0xd365128362d1325a; key2->rd_key[23]=0xe0e257483903f3e8;
+  key2->rd_key[24]=0x6d1ecd82358affbf; key2->rd_key[25]=0xc26c685728b9a235;
+  key2->rd_key[26]=0x94e4658247817701; key2->rd_key[27]=0x4d05c122ade7966a;
+  key2->rd_key[28]=0xcb775905a6699487; key2->rd_key[29]=0x21a29367e3cefb30;
+
+  key1->rounds=13;
+  key2->rounds=13;
+
+  iv[0]=0x9a;iv[1]=0x78;iv[2]=0x56;iv[3]=0x34;
+  iv[4]=0x12;iv[5]=0x00;iv[6]=0x00;iv[7]=0x00;
+  iv[8]=0x00;iv[9]=0x00;iv[10]=0x00;iv[11]=0x00;
+  iv[12]=0x00;iv[13]=0x00;iv[14]=0x00;iv[15]=0x00;
+
+  aes_hw_xts_decrypt(in,out,len,key1,key2,iv);
+
+  res[0]=0x00;res[1]=0x01;res[2]=0x02;res[3]=0x03;
+  res[4]=0x04;res[5]=0x05;res[6]=0x06;res[7]=0x07;
+  res[8]=0x08;res[9]=0x09;res[10]=0x0a;res[11]=0x0b;
+  res[12]=0x0c;res[13]=0x0d;res[14]=0x0e;res[15]=0x0f;
+  res[16]=0x10;
+  if (out[0]!=res[0] || out[1]!=res[1] || out[2]!=res[2] || out[3]!=res[3] || \
+      out[4]!=res[4] || out[5]!=res[5] || out[6]!=res[6] || out[7]!=res[7] || \
+      out[8]!=res[8] || out[9]!=res[9] || out[10]!=res[10] || out[11]!=res[11] || \
+      out[12]!=res[12] || out[13]!=res[13] || out[14]!=res[14] || out[15]!=res[15] || \
+      out[16]!=res[16] ) \
+  { printf("Failed known value test\n"); ++failures; } else { ++successes; }
 
   if (failures != 0)
     { printf ("Failed %d known value tests, passed %d\n",failures,successes);
@@ -13382,7 +13865,7 @@ void functionaltest(int enabled,char *name,int (*f)(void))
   // Only benchmark function using supported instructions (on x86)
 
   if (!enabled)
-   { printf("Skipping %s because not applicable (x86 BMI/ADX support)\n",name);
+   { printf("Skipping %s because not applicable (x86 BMI/ADX support, or AESNI & SSE support)\n",name);
      ++inapplicable;
      return;
    }
@@ -13404,6 +13887,7 @@ void functionaltest(int enabled,char *name,int (*f)(void))
 
 int main(int argc, char *argv[])
 { int bmi = get_arch_name() == ARCH_AARCH64 || supports_bmi2_and_adx();
+  int aes = get_arch_name() == ARCH_X86_64 && support_aesni() && support_sse();
   int all = 1;
   int extrastrigger = 1;
 
@@ -13433,332 +13917,332 @@ int main(int argc, char *argv[])
 
   if (tests == 0) tests = TESTS;
 
-  functionaltest(all,"bignum_add",test_bignum_add);
-  functionaltest(all,"bignum_add_p25519",test_bignum_add_p25519);
-  functionaltest(all,"bignum_add_p256",test_bignum_add_p256);
-  functionaltest(all,"bignum_add_p256k1",test_bignum_add_p256k1);
-  functionaltest(all,"bignum_add_p384",test_bignum_add_p384);
-  functionaltest(all,"bignum_add_p521",test_bignum_add_p521);
-  functionaltest(all,"bignum_add_sm2",test_bignum_add_sm2);
-  functionaltest(all,"bignum_amontifier",test_bignum_amontifier);
-  functionaltest(all,"bignum_amontmul",test_bignum_amontmul);
-  functionaltest(all,"bignum_amontredc",test_bignum_amontredc);
-  functionaltest(all,"bignum_amontsqr",test_bignum_amontsqr);
-  functionaltest(all,"bignum_bigendian_4",test_bignum_bigendian_4);
-  functionaltest(all,"bignum_bigendian_6",test_bignum_bigendian_6);
-  functionaltest(all,"bignum_bitfield",test_bignum_bitfield);
-  functionaltest(all,"bignum_bitsize",test_bignum_bitsize);
-  functionaltest(all,"bignum_cdiv",test_bignum_cdiv);
-  functionaltest(all,"bignum_cdiv_exact",test_bignum_cdiv_exact);
-  functionaltest(all,"bignum_cld",test_bignum_cld);
-  functionaltest(all,"bignum_clz",test_bignum_clz);
-  functionaltest(all,"bignum_cmadd",test_bignum_cmadd);
-  functionaltest(all,"bignum_cmnegadd",test_bignum_cmnegadd);
-  functionaltest(all,"bignum_cmod",test_bignum_cmod);
-  functionaltest(all,"bignum_cmul",test_bignum_cmul);
-  functionaltest(bmi,"bignum_cmul_p25519",test_bignum_cmul_p25519);
-  functionaltest(all,"bignum_cmul_p25519_alt",test_bignum_cmul_p25519_alt);
-  functionaltest(bmi,"bignum_cmul_p256",test_bignum_cmul_p256);
-  functionaltest(all,"bignum_cmul_p256_alt",test_bignum_cmul_p256_alt);
-  functionaltest(bmi,"bignum_cmul_p256k1",test_bignum_cmul_p256k1);
-  functionaltest(all,"bignum_cmul_p256k1_alt",test_bignum_cmul_p256k1_alt);
-  functionaltest(bmi,"bignum_cmul_p384",test_bignum_cmul_p384);
-  functionaltest(all,"bignum_cmul_p384_alt",test_bignum_cmul_p384_alt);
-  functionaltest(bmi,"bignum_cmul_p521",test_bignum_cmul_p521);
-  functionaltest(all,"bignum_cmul_p521_alt",test_bignum_cmul_p521_alt);
-  functionaltest(bmi,"bignum_cmul_sm2",test_bignum_cmul_sm2);
-  functionaltest(all,"bignum_cmul_sm2_alt",test_bignum_cmul_sm2_alt);
-  functionaltest(all,"bignum_coprime",test_bignum_coprime);
-  functionaltest(all,"bignum_copy",test_bignum_copy);
-  functionaltest(all,"bignum_copy_row_from_table",test_bignum_copy_row_from_table);
-  functionaltest(all,"bignum_ctd",test_bignum_ctd);
-  functionaltest(all,"bignum_ctz",test_bignum_ctz);
-  functionaltest(bmi,"bignum_deamont_p256",test_bignum_deamont_p256);
-  functionaltest(all,"bignum_deamont_p256_alt",test_bignum_deamont_p256_alt);
-  functionaltest(all,"bignum_deamont_p256k1",test_bignum_deamont_p256k1);
-  functionaltest(bmi,"bignum_deamont_p384",test_bignum_deamont_p384);
-  functionaltest(all,"bignum_deamont_p384_alt",test_bignum_deamont_p384_alt);
-  functionaltest(all,"bignum_deamont_p521",test_bignum_deamont_p521);
-  functionaltest(all,"bignum_deamont_sm2",test_bignum_deamont_sm2);
-  functionaltest(all,"bignum_demont",test_bignum_demont);
-  functionaltest(bmi,"bignum_demont_p256",test_bignum_demont_p256);
-  functionaltest(all,"bignum_demont_p256_alt",test_bignum_demont_p256_alt);
-  functionaltest(all,"bignum_demont_p256k1",test_bignum_demont_p256k1);
-  functionaltest(bmi,"bignum_demont_p384",test_bignum_demont_p384);
-  functionaltest(all,"bignum_demont_p384_alt",test_bignum_demont_p384_alt);
-  functionaltest(all,"bignum_demont_p521",test_bignum_demont_p521);
-  functionaltest(all,"bignum_demont_sm2",test_bignum_demont_sm2);
-  functionaltest(all,"bignum_digit",test_bignum_digit);
-  functionaltest(all,"bignum_digitsize",test_bignum_digitsize);
-  functionaltest(all,"bignum_divmod10",test_bignum_divmod10);
-  functionaltest(all,"bignum_double_p25519",test_bignum_double_p25519);
-  functionaltest(all,"bignum_double_p256",test_bignum_double_p256);
-  functionaltest(all,"bignum_double_p256k1",test_bignum_double_p256k1);
-  functionaltest(all,"bignum_double_p384",test_bignum_double_p384);
-  functionaltest(all,"bignum_double_p521",test_bignum_double_p521);
-  functionaltest(all,"bignum_double_sm2",test_bignum_double_sm2);
-  functionaltest(all,"bignum_emontredc",test_bignum_emontredc);
-  functionaltest(bmi,"bignum_emontredc_8n",test_bignum_emontredc_8n);
-  functionaltest(all,"bignum_eq",test_bignum_eq);
-  functionaltest(all,"bignum_even",test_bignum_even);
-  functionaltest(all,"bignum_frombebytes_4",test_bignum_frombebytes_4);
-  functionaltest(all,"bignum_frombebytes_6",test_bignum_frombebytes_6);
-  functionaltest(all,"bignum_fromlebytes_4",test_bignum_fromlebytes_4);
-  functionaltest(all,"bignum_fromlebytes_6",test_bignum_fromlebytes_6);
-  functionaltest(all,"bignum_fromlebytes_p521",test_bignum_fromlebytes_p521);
-  functionaltest(all,"bignum_ge",test_bignum_ge);
-  functionaltest(all,"bignum_gt",test_bignum_gt);
-  functionaltest(all,"bignum_half_p256",test_bignum_half_p256);
-  functionaltest(all,"bignum_half_p256k1",test_bignum_half_p256k1);
-  functionaltest(all,"bignum_half_p384",test_bignum_half_p384);
-  functionaltest(all,"bignum_half_p521",test_bignum_half_p521);
-  functionaltest(all,"bignum_half_sm2",test_bignum_half_sm2);
-  functionaltest(all,"bignum_inv_p25519",test_bignum_inv_p25519);
-  functionaltest(all,"bignum_inv_p256",test_bignum_inv_p256);
-  functionaltest(all,"bignum_inv_p384",test_bignum_inv_p384);
-  functionaltest(all,"bignum_inv_p521",test_bignum_inv_p521);
-  functionaltest(all,"bignum_inv_sm2",test_bignum_inv_sm2);
-  functionaltest(bmi,"bignum_invsqrt_p25519",test_bignum_invsqrt_p25519);
-  functionaltest(all,"bignum_invsqrt_p25519_alt",test_bignum_invsqrt_p25519_alt);
-  functionaltest(all,"bignum_iszero",test_bignum_iszero);
-  functionaltest(bmi,"bignum_kmul_16_32",test_bignum_kmul_16_32);
-  functionaltest(bmi,"bignum_kmul_32_64", test_bignum_kmul_32_64);
-  functionaltest(bmi,"bignum_ksqr_16_32",test_bignum_ksqr_16_32);
-  functionaltest(bmi,"bignum_ksqr_32_64",test_bignum_ksqr_32_64);
-  functionaltest(all,"bignum_le",test_bignum_le);
-  functionaltest(all,"bignum_littleendian_4",test_bignum_littleendian_4);
-  functionaltest(all,"bignum_littleendian_6",test_bignum_littleendian_6);
-  functionaltest(all,"bignum_lt",test_bignum_lt);
-  functionaltest(all,"bignum_madd",test_bignum_madd);
-  functionaltest(bmi,"bignum_madd_n25519",test_bignum_madd_n25519);
-  functionaltest(all,"bignum_madd_n25519_alt",test_bignum_madd_n25519_alt);
-  functionaltest(all,"bignum_mod_m25519_4",test_bignum_mod_m25519_4);
-  functionaltest(all,"bignum_mod_n25519",test_bignum_mod_n25519);
-  functionaltest(all,"bignum_mod_n25519_4",test_bignum_mod_n25519_4);
-  functionaltest(bmi,"bignum_mod_n256",test_bignum_mod_n256);
-  functionaltest(all,"bignum_mod_n256_4",test_bignum_mod_n256_4);
-  functionaltest(all,"bignum_mod_n256_alt",test_bignum_mod_n256_alt);
-  functionaltest(all,"bignum_mod_n256k1_4",test_bignum_mod_n256k1_4);
-  functionaltest(bmi,"bignum_mod_n384",test_bignum_mod_n384);
-  functionaltest(all,"bignum_mod_n384_6",test_bignum_mod_n384_6);
-  functionaltest(all,"bignum_mod_n384_alt",test_bignum_mod_n384_alt);
-  functionaltest(bmi,"bignum_mod_n521_9",test_bignum_mod_n521_9);
-  functionaltest(all,"bignum_mod_n521_9_alt",test_bignum_mod_n521_9_alt);
-  functionaltest(bmi,"bignum_mod_nsm2",test_bignum_mod_nsm2);
-  functionaltest(all,"bignum_mod_nsm2_4",test_bignum_mod_nsm2_4);
-  functionaltest(all,"bignum_mod_nsm2_alt",test_bignum_mod_nsm2_alt);
-  functionaltest(all,"bignum_mod_p25519_4",test_bignum_mod_p25519_4);
-  functionaltest(bmi,"bignum_mod_p256",test_bignum_mod_p256);
-  functionaltest(all,"bignum_mod_p256_4",test_bignum_mod_p256_4);
-  functionaltest(all,"bignum_mod_p256_alt",test_bignum_mod_p256_alt);
-  functionaltest(all,"bignum_mod_p256k1_4",test_bignum_mod_p256k1_4);
-  functionaltest(bmi,"bignum_mod_p384",test_bignum_mod_p384);
-  functionaltest(all,"bignum_mod_p384_6",test_bignum_mod_p384_6);
-  functionaltest(all,"bignum_mod_p384_alt",test_bignum_mod_p384_alt);
-  functionaltest(all,"bignum_mod_p521_9",test_bignum_mod_p521_9);
-  functionaltest(all,"bignum_mod_sm2",test_bignum_mod_sm2);
-  functionaltest(all,"bignum_mod_sm2_4",test_bignum_mod_sm2_4);
-  functionaltest(all,"bignum_modadd",test_bignum_modadd);
-  functionaltest(all,"bignum_moddouble",test_bignum_moddouble);
-  functionaltest(all,"bignum_modexp",test_bignum_modexp);
-  functionaltest(all,"bignum_modifier",test_bignum_modifier);
-  functionaltest(all,"bignum_modinv",test_bignum_modinv);
-  functionaltest(all,"bignum_modoptneg",test_bignum_modoptneg);
-  functionaltest(all,"bignum_modsub",test_bignum_modsub);
-  functionaltest(all,"bignum_montifier",test_bignum_montifier);
-  functionaltest(all,"bignum_montinv_p256",test_bignum_montinv_p256);
-  functionaltest(all,"bignum_montinv_p384",test_bignum_montinv_p384);
-  functionaltest(all,"bignum_montinv_sm2",test_bignum_montinv_sm2);
-  functionaltest(all,"bignum_montmul",test_bignum_montmul);
-  functionaltest(bmi,"bignum_montmul_p256",test_bignum_montmul_p256);
-  functionaltest(all,"bignum_montmul_p256_alt",test_bignum_montmul_p256_alt);
-  functionaltest(bmi,"bignum_montmul_p256k1",test_bignum_montmul_p256k1);
-  functionaltest(all,"bignum_montmul_p256k1_alt",test_bignum_montmul_p256k1_alt);
-  functionaltest(bmi,"bignum_montmul_p384",test_bignum_montmul_p384);
-  functionaltest(all,"bignum_montmul_p384_alt",test_bignum_montmul_p384_alt);
-  functionaltest(bmi,"bignum_montmul_p521",test_bignum_montmul_p521);
-  functionaltest(all,"bignum_montmul_p521_alt",test_bignum_montmul_p521_alt);
-  functionaltest(bmi,"bignum_montmul_sm2",test_bignum_montmul_sm2);
-  functionaltest(all,"bignum_montmul_sm2_alt",test_bignum_montmul_sm2_alt);
-  functionaltest(all,"bignum_montredc",test_bignum_montredc);
-  functionaltest(all,"bignum_montsqr",test_bignum_montsqr);
-  functionaltest(bmi,"bignum_montsqr_p256",test_bignum_montsqr_p256);
-  functionaltest(all,"bignum_montsqr_p256_alt",test_bignum_montsqr_p256_alt);
-  functionaltest(bmi,"bignum_montsqr_p256k1",test_bignum_montsqr_p256k1);
-  functionaltest(all,"bignum_montsqr_p256k1_alt",test_bignum_montsqr_p256k1_alt);
-  functionaltest(bmi,"bignum_montsqr_p384",test_bignum_montsqr_p384);
-  functionaltest(all,"bignum_montsqr_p384_alt",test_bignum_montsqr_p384_alt);
-  functionaltest(bmi,"bignum_montsqr_p521",test_bignum_montsqr_p521);
-  functionaltest(all,"bignum_montsqr_p521_alt",test_bignum_montsqr_p521_alt);
-  functionaltest(bmi,"bignum_montsqr_sm2",test_bignum_montsqr_sm2);
-  functionaltest(all,"bignum_montsqr_sm2_alt",test_bignum_montsqr_sm2_alt);
-  functionaltest(all,"bignum_mul",test_bignum_mul);
-  functionaltest(bmi,"bignum_mul_4_8",test_bignum_mul_4_8);
-  functionaltest(all,"bignum_mul_4_8_alt",test_bignum_mul_4_8_alt);
-  functionaltest(bmi,"bignum_mul_6_12",test_bignum_mul_6_12);
-  functionaltest(all,"bignum_mul_6_12_alt",test_bignum_mul_6_12_alt);
-  functionaltest(bmi,"bignum_mul_8_16",test_bignum_mul_8_16);
-  functionaltest(all,"bignum_mul_8_16_alt",test_bignum_mul_8_16_alt);
-  functionaltest(bmi,"bignum_mul_p25519",test_bignum_mul_p25519);
-  functionaltest(all,"bignum_mul_p25519_alt",test_bignum_mul_p25519_alt);
-  functionaltest(bmi,"bignum_mul_p256k1",test_bignum_mul_p256k1);
-  functionaltest(all,"bignum_mul_p256k1_alt",test_bignum_mul_p256k1_alt);
-  functionaltest(bmi,"bignum_mul_p521",test_bignum_mul_p521);
-  functionaltest(all,"bignum_mul_p521_alt",test_bignum_mul_p521_alt);
-  functionaltest(all,"bignum_muladd10",test_bignum_muladd10);
-  functionaltest(all,"bignum_mux",test_bignum_mux);
-  functionaltest(all,"bignum_mux16",test_bignum_mux16);
-  functionaltest(all,"bignum_mux_4",test_bignum_mux_4);
-  functionaltest(all,"bignum_mux_6",test_bignum_mux_6);
-  functionaltest(all,"bignum_neg_p25519",test_bignum_neg_p25519);
-  functionaltest(all,"bignum_neg_p256",test_bignum_neg_p256);
-  functionaltest(all,"bignum_neg_p256k1",test_bignum_neg_p256k1);
-  functionaltest(all,"bignum_neg_p384",test_bignum_neg_p384);
-  functionaltest(all,"bignum_neg_p521",test_bignum_neg_p521);
-  functionaltest(all,"bignum_neg_sm2",test_bignum_neg_sm2);
-  functionaltest(all,"bignum_negmodinv",test_bignum_negmodinv);
-  functionaltest(all,"bignum_nonzero",test_bignum_nonzero);
-  functionaltest(all,"bignum_nonzero_4",test_bignum_nonzero_4);
-  functionaltest(all,"bignum_nonzero_6",test_bignum_nonzero_6);
-  functionaltest(all,"bignum_normalize",test_bignum_normalize);
-  functionaltest(all,"bignum_odd",test_bignum_odd);
-  functionaltest(all,"bignum_of_word",test_bignum_of_word);
-  functionaltest(all,"bignum_optadd",test_bignum_optadd);
-  functionaltest(all,"bignum_optneg",test_bignum_optneg);
-  functionaltest(all,"bignum_optneg_p25519",test_bignum_optneg_p25519);
-  functionaltest(all,"bignum_optneg_p256",test_bignum_optneg_p256);
-  functionaltest(all,"bignum_optneg_p256k1",test_bignum_optneg_p256k1);
-  functionaltest(all,"bignum_optneg_p384",test_bignum_optneg_p384);
-  functionaltest(all,"bignum_optneg_p521",test_bignum_optneg_p521);
-  functionaltest(all,"bignum_optneg_sm2",test_bignum_optneg_sm2);
-  functionaltest(all,"bignum_optsub",test_bignum_optsub);
-  functionaltest(all,"bignum_optsubadd",test_bignum_optsubadd);
-  functionaltest(all,"bignum_pow2",test_bignum_pow2);
-  functionaltest(all,"bignum_shl_small",test_bignum_shl_small);
-  functionaltest(all,"bignum_shr_small",test_bignum_shr_small);
-  functionaltest(all,"bignum_sqr",test_bignum_sqr);
-  functionaltest(bmi,"bignum_sqr_4_8",test_bignum_sqr_4_8);
-  functionaltest(all,"bignum_sqr_4_8_alt",test_bignum_sqr_4_8_alt);
-  functionaltest(bmi,"bignum_sqr_6_12",test_bignum_sqr_6_12);
-  functionaltest(all,"bignum_sqr_6_12_alt",test_bignum_sqr_6_12_alt);
-  functionaltest(bmi,"bignum_sqr_8_16",test_bignum_sqr_8_16);
-  functionaltest(all,"bignum_sqr_8_16_alt",test_bignum_sqr_8_16_alt);
-  functionaltest(bmi,"bignum_sqr_p25519",test_bignum_sqr_p25519);
-  functionaltest(all,"bignum_sqr_p25519_alt",test_bignum_sqr_p25519_alt);
-  functionaltest(bmi,"bignum_sqr_p256k1",test_bignum_sqr_p256k1);
-  functionaltest(all,"bignum_sqr_p256k1_alt",test_bignum_sqr_p256k1_alt);
-  functionaltest(bmi,"bignum_sqr_p521",test_bignum_sqr_p521);
-  functionaltest(all,"bignum_sqr_p521_alt",test_bignum_sqr_p521_alt);
-  functionaltest(bmi,"bignum_sqrt_p25519",test_bignum_sqrt_p25519);
-  functionaltest(all,"bignum_sqrt_p25519_alt",test_bignum_sqrt_p25519_alt);
-  functionaltest(all,"bignum_sub",test_bignum_sub);
-  functionaltest(all,"bignum_sub_p25519",test_bignum_sub_p25519);
-  functionaltest(all,"bignum_sub_p256",test_bignum_sub_p256);
-  functionaltest(all,"bignum_sub_p256k1",test_bignum_sub_p256k1);
-  functionaltest(all,"bignum_sub_p384",test_bignum_sub_p384);
-  functionaltest(all,"bignum_sub_p521",test_bignum_sub_p521);
-  functionaltest(all,"bignum_sub_sm2",test_bignum_sub_sm2);
-  functionaltest(all,"bignum_tobebytes_4",test_bignum_tobebytes_4);
-  functionaltest(all,"bignum_tobebytes_6",test_bignum_tobebytes_6);
-  functionaltest(all,"bignum_tolebytes_4",test_bignum_tolebytes_4);
-  functionaltest(all,"bignum_tolebytes_6",test_bignum_tolebytes_6);
-  functionaltest(all,"bignum_tolebytes_p521",test_bignum_tolebytes_p521);
-  functionaltest(bmi,"bignum_tomont_p256",test_bignum_tomont_p256);
-  functionaltest(all,"bignum_tomont_p256_alt",test_bignum_tomont_p256_alt);
-  functionaltest(bmi,"bignum_tomont_p256k1",test_bignum_tomont_p256k1);
-  functionaltest(all,"bignum_tomont_p256k1_alt",test_bignum_tomont_p256k1_alt);
-  functionaltest(bmi,"bignum_tomont_p384",test_bignum_tomont_p384);
-  functionaltest(all,"bignum_tomont_p384_alt",test_bignum_tomont_p384_alt);
-  functionaltest(all,"bignum_tomont_p521",test_bignum_tomont_p521);
-  functionaltest(all,"bignum_tomont_sm2",test_bignum_tomont_sm2);
-  functionaltest(bmi,"bignum_triple_p256",test_bignum_triple_p256);
-  functionaltest(all,"bignum_triple_p256_alt",test_bignum_triple_p256_alt);
-  functionaltest(bmi,"bignum_triple_p256k1",test_bignum_triple_p256k1);
-  functionaltest(all,"bignum_triple_p256k1_alt",test_bignum_triple_p256k1_alt);
-  functionaltest(bmi,"bignum_triple_p384",test_bignum_triple_p384);
-  functionaltest(all,"bignum_triple_p384_alt",test_bignum_triple_p384_alt);
-  functionaltest(bmi,"bignum_triple_p521",test_bignum_triple_p521);
-  functionaltest(all,"bignum_triple_p521_alt",test_bignum_triple_p521_alt);
-  functionaltest(bmi,"bignum_triple_sm2",test_bignum_triple_sm2);
-  functionaltest(all,"bignum_triple_sm2_alt",test_bignum_triple_sm2_alt);
-  functionaltest(bmi,"curve25519_ladderstep",test_curve25519_ladderstep);
-  functionaltest(all,"curve25519_ladderstep_alt",test_curve25519_ladderstep_alt);
-  functionaltest(bmi,"curve25519_pxscalarmul",test_curve25519_pxscalarmul);
-  functionaltest(all,"curve25519_pxscalarmul_alt",test_curve25519_pxscalarmul_alt);
-  functionaltest(bmi,"curve25519_x25519",test_curve25519_x25519);
-  functionaltest(all,"curve25519_x25519_alt",test_curve25519_x25519_alt);
-  functionaltest(bmi,"curve25519_x25519_byte",test_curve25519_x25519_byte);
-  functionaltest(all,"curve25519_x25519_byte_alt",test_curve25519_x25519_byte_alt);
-  functionaltest(bmi,"curve25519_x25519base",test_curve25519_x25519base);
-  functionaltest(all,"curve25519_x25519base_alt",test_curve25519_x25519base_alt);
-  functionaltest(bmi,"curve25519_x25519base_byte",test_curve25519_x25519base_byte);
-  functionaltest(all,"curve25519_x25519base_byte_alt",test_curve25519_x25519base_byte_alt);
-  functionaltest(bmi,"edwards25519_decode",test_edwards25519_decode);
-  functionaltest(all,"edwards25519_decode_alt",test_edwards25519_decode_alt);
-  functionaltest(all,"edwards25519_encode",test_edwards25519_encode);
-  functionaltest(bmi,"edwards25519_epadd",test_edwards25519_epadd);
-  functionaltest(all,"edwards25519_epadd_alt",test_edwards25519_epadd_alt);
-  functionaltest(bmi,"edwards25519_epdouble",test_edwards25519_epdouble);
-  functionaltest(all,"edwards25519_epdouble_alt",test_edwards25519_epdouble_alt);
-  functionaltest(bmi,"edwards25519_pdouble",test_edwards25519_pdouble);
-  functionaltest(all,"edwards25519_pdouble_alt",test_edwards25519_pdouble_alt);
-  functionaltest(bmi,"edwards25519_pepadd",test_edwards25519_pepadd);
-  functionaltest(all,"edwards25519_pepadd_alt",test_edwards25519_pepadd_alt);
-  functionaltest(bmi,"edwards25519_scalarmulbase",test_edwards25519_scalarmulbase);
-  functionaltest(all,"edwards25519_scalarmulbase_alt",test_edwards25519_scalarmulbase_alt);
-  functionaltest(bmi,"edwards25519_scalarmuldouble",test_edwards25519_scalarmuldouble);
-  functionaltest(all,"edwards25519_scalarmuldouble_alt",test_edwards25519_scalarmuldouble_alt);
-  functionaltest(bmi,"p256_montjadd",test_p256_montjadd);
-  functionaltest(all,"p256_montjadd_alt",test_p256_montjadd_alt);
-  functionaltest(bmi,"p256_montjdouble",test_p256_montjdouble);
-  functionaltest(all,"p256_montjdouble_alt",test_p256_montjdouble_alt);
-  functionaltest(bmi,"p256_montjmixadd",test_p256_montjmixadd);
-  functionaltest(all,"p256_montjmixadd_alt",test_p256_montjmixadd_alt);
-  functionaltest(bmi,"p256_montjscalarmul",test_p256_montjscalarmul);
-  functionaltest(all,"p256_montjscalarmul_alt",test_p256_montjscalarmul_alt);
-  functionaltest(bmi,"p256_scalarmul",test_p256_scalarmul);
-  functionaltest(all,"p256_scalarmul_alt",test_p256_scalarmul_alt);
-  functionaltest(bmi,"p256_scalarmulbase",test_p256_scalarmulbase);
-  functionaltest(all,"p256_scalarmulbase_alt",test_p256_scalarmulbase_alt);
-  functionaltest(bmi,"p384_montjadd",test_p384_montjadd);
-  functionaltest(all,"p384_montjadd_alt",test_p384_montjadd_alt);
-  functionaltest(bmi,"p384_montjdouble",test_p384_montjdouble);
-  functionaltest(all,"p384_montjdouble_alt",test_p384_montjdouble_alt);
-  functionaltest(bmi,"p384_montjmixadd",test_p384_montjmixadd);
-  functionaltest(all,"p384_montjmixadd_alt",test_p384_montjmixadd_alt);
-  functionaltest(bmi,"p384_montjscalarmul",test_p384_montjscalarmul);
-  functionaltest(all,"p384_montjscalarmul_alt",test_p384_montjscalarmul_alt);
-  functionaltest(bmi,"p521_jadd",test_p521_jadd);
-  functionaltest(all,"p521_jadd_alt",test_p521_jadd_alt);
-  functionaltest(bmi,"p521_jdouble",test_p521_jdouble);
-  functionaltest(all,"p521_jdouble_alt",test_p521_jdouble_alt);
-  functionaltest(bmi,"p521_jmixadd",test_p521_jmixadd);
-  functionaltest(all,"p521_jmixadd_alt",test_p521_jmixadd_alt);
-  functionaltest(bmi,"p521_jscalarmul",test_p521_jscalarmul);
-  functionaltest(all,"p521_jscalarmul_alt",test_p521_jscalarmul_alt);
-  functionaltest(bmi,"secp256k1_jadd",test_secp256k1_jadd);
-  functionaltest(all,"secp256k1_jadd_alt",test_secp256k1_jadd_alt);
-  functionaltest(bmi,"secp256k1_jdouble",test_secp256k1_jdouble);
-  functionaltest(all,"secp256k1_jdouble_alt",test_secp256k1_jdouble_alt);
-  functionaltest(bmi,"secp256k1_jmixadd",test_secp256k1_jmixadd);
-  functionaltest(all,"secp256k1_jmixadd_alt",test_secp256k1_jmixadd_alt);
-  functionaltest(bmi,"sm2_montjadd",test_sm2_montjadd);
-  functionaltest(all,"sm2_montjadd_alt",test_sm2_montjadd_alt);
-  functionaltest(bmi,"sm2_montjdouble",test_sm2_montjdouble);
-  functionaltest(all,"sm2_montjdouble_alt",test_sm2_montjdouble_alt);
-  functionaltest(bmi,"sm2_montjmixadd",test_sm2_montjmixadd);
-  functionaltest(all,"sm2_montjmixadd_alt",test_sm2_montjmixadd_alt);
-  functionaltest(bmi,"sm2_montjscalarmul",test_sm2_montjscalarmul);
-  functionaltest(all,"sm2_montjscalarmul_alt",test_sm2_montjscalarmul_alt);
-  functionaltest(all,"word_bytereverse",test_word_bytereverse);
-  functionaltest(all,"word_clz",test_word_clz);
-  functionaltest(all,"word_ctz",test_word_ctz);
-  functionaltest(all,"word_divstep59",test_word_divstep59);
-  functionaltest(all,"word_max",test_word_max);
-  functionaltest(all,"word_min",test_word_min);
-  functionaltest(all,"word_negmodinv",test_word_negmodinv);
-  functionaltest(all,"word_popcount",test_word_popcount);
-  functionaltest(all,"word_recip",test_word_recip);
+  // functionaltest(all,"bignum_add",test_bignum_add);
+  // functionaltest(all,"bignum_add_p25519",test_bignum_add_p25519);
+  // functionaltest(all,"bignum_add_p256",test_bignum_add_p256);
+  // functionaltest(all,"bignum_add_p256k1",test_bignum_add_p256k1);
+  // functionaltest(all,"bignum_add_p384",test_bignum_add_p384);
+  // functionaltest(all,"bignum_add_p521",test_bignum_add_p521);
+  // functionaltest(all,"bignum_add_sm2",test_bignum_add_sm2);
+  // functionaltest(all,"bignum_amontifier",test_bignum_amontifier);
+  // functionaltest(all,"bignum_amontmul",test_bignum_amontmul);
+  // functionaltest(all,"bignum_amontredc",test_bignum_amontredc);
+  // functionaltest(all,"bignum_amontsqr",test_bignum_amontsqr);
+  // functionaltest(all,"bignum_bigendian_4",test_bignum_bigendian_4);
+  // functionaltest(all,"bignum_bigendian_6",test_bignum_bigendian_6);
+  // functionaltest(all,"bignum_bitfield",test_bignum_bitfield);
+  // functionaltest(all,"bignum_bitsize",test_bignum_bitsize);
+  // functionaltest(all,"bignum_cdiv",test_bignum_cdiv);
+  // functionaltest(all,"bignum_cdiv_exact",test_bignum_cdiv_exact);
+  // functionaltest(all,"bignum_cld",test_bignum_cld);
+  // functionaltest(all,"bignum_clz",test_bignum_clz);
+  // functionaltest(all,"bignum_cmadd",test_bignum_cmadd);
+  // functionaltest(all,"bignum_cmnegadd",test_bignum_cmnegadd);
+  // functionaltest(all,"bignum_cmod",test_bignum_cmod);
+  // functionaltest(all,"bignum_cmul",test_bignum_cmul);
+  // functionaltest(bmi,"bignum_cmul_p25519",test_bignum_cmul_p25519);
+  // functionaltest(all,"bignum_cmul_p25519_alt",test_bignum_cmul_p25519_alt);
+  // functionaltest(bmi,"bignum_cmul_p256",test_bignum_cmul_p256);
+  // functionaltest(all,"bignum_cmul_p256_alt",test_bignum_cmul_p256_alt);
+  // functionaltest(bmi,"bignum_cmul_p256k1",test_bignum_cmul_p256k1);
+  // functionaltest(all,"bignum_cmul_p256k1_alt",test_bignum_cmul_p256k1_alt);
+  // functionaltest(bmi,"bignum_cmul_p384",test_bignum_cmul_p384);
+  // functionaltest(all,"bignum_cmul_p384_alt",test_bignum_cmul_p384_alt);
+  // functionaltest(bmi,"bignum_cmul_p521",test_bignum_cmul_p521);
+  // functionaltest(all,"bignum_cmul_p521_alt",test_bignum_cmul_p521_alt);
+  // functionaltest(bmi,"bignum_cmul_sm2",test_bignum_cmul_sm2);
+  // functionaltest(all,"bignum_cmul_sm2_alt",test_bignum_cmul_sm2_alt);
+  // functionaltest(all,"bignum_coprime",test_bignum_coprime);
+  // functionaltest(all,"bignum_copy",test_bignum_copy);
+  // functionaltest(all,"bignum_copy_row_from_table",test_bignum_copy_row_from_table);
+  // functionaltest(all,"bignum_ctd",test_bignum_ctd);
+  // functionaltest(all,"bignum_ctz",test_bignum_ctz);
+  // functionaltest(bmi,"bignum_deamont_p256",test_bignum_deamont_p256);
+  // functionaltest(all,"bignum_deamont_p256_alt",test_bignum_deamont_p256_alt);
+  // functionaltest(all,"bignum_deamont_p256k1",test_bignum_deamont_p256k1);
+  // functionaltest(bmi,"bignum_deamont_p384",test_bignum_deamont_p384);
+  // functionaltest(all,"bignum_deamont_p384_alt",test_bignum_deamont_p384_alt);
+  // functionaltest(all,"bignum_deamont_p521",test_bignum_deamont_p521);
+  // functionaltest(all,"bignum_deamont_sm2",test_bignum_deamont_sm2);
+  // functionaltest(all,"bignum_demont",test_bignum_demont);
+  // functionaltest(bmi,"bignum_demont_p256",test_bignum_demont_p256);
+  // functionaltest(all,"bignum_demont_p256_alt",test_bignum_demont_p256_alt);
+  // functionaltest(all,"bignum_demont_p256k1",test_bignum_demont_p256k1);
+  // functionaltest(bmi,"bignum_demont_p384",test_bignum_demont_p384);
+  // functionaltest(all,"bignum_demont_p384_alt",test_bignum_demont_p384_alt);
+  // functionaltest(all,"bignum_demont_p521",test_bignum_demont_p521);
+  // functionaltest(all,"bignum_demont_sm2",test_bignum_demont_sm2);
+  // functionaltest(all,"bignum_digit",test_bignum_digit);
+  // functionaltest(all,"bignum_digitsize",test_bignum_digitsize);
+  // functionaltest(all,"bignum_divmod10",test_bignum_divmod10);
+  // functionaltest(all,"bignum_double_p25519",test_bignum_double_p25519);
+  // functionaltest(all,"bignum_double_p256",test_bignum_double_p256);
+  // functionaltest(all,"bignum_double_p256k1",test_bignum_double_p256k1);
+  // functionaltest(all,"bignum_double_p384",test_bignum_double_p384);
+  // functionaltest(all,"bignum_double_p521",test_bignum_double_p521);
+  // functionaltest(all,"bignum_double_sm2",test_bignum_double_sm2);
+  // functionaltest(all,"bignum_emontredc",test_bignum_emontredc);
+  // functionaltest(bmi,"bignum_emontredc_8n",test_bignum_emontredc_8n);
+  // functionaltest(all,"bignum_eq",test_bignum_eq);
+  // functionaltest(all,"bignum_even",test_bignum_even);
+  // functionaltest(all,"bignum_frombebytes_4",test_bignum_frombebytes_4);
+  // functionaltest(all,"bignum_frombebytes_6",test_bignum_frombebytes_6);
+  // functionaltest(all,"bignum_fromlebytes_4",test_bignum_fromlebytes_4);
+  // functionaltest(all,"bignum_fromlebytes_6",test_bignum_fromlebytes_6);
+  // functionaltest(all,"bignum_fromlebytes_p521",test_bignum_fromlebytes_p521);
+  // functionaltest(all,"bignum_ge",test_bignum_ge);
+  // functionaltest(all,"bignum_gt",test_bignum_gt);
+  // functionaltest(all,"bignum_half_p256",test_bignum_half_p256);
+  // functionaltest(all,"bignum_half_p256k1",test_bignum_half_p256k1);
+  // functionaltest(all,"bignum_half_p384",test_bignum_half_p384);
+  // functionaltest(all,"bignum_half_p521",test_bignum_half_p521);
+  // functionaltest(all,"bignum_half_sm2",test_bignum_half_sm2);
+  // functionaltest(all,"bignum_inv_p25519",test_bignum_inv_p25519);
+  // functionaltest(all,"bignum_inv_p256",test_bignum_inv_p256);
+  // functionaltest(all,"bignum_inv_p384",test_bignum_inv_p384);
+  // functionaltest(all,"bignum_inv_p521",test_bignum_inv_p521);
+  // functionaltest(all,"bignum_inv_sm2",test_bignum_inv_sm2);
+  // functionaltest(bmi,"bignum_invsqrt_p25519",test_bignum_invsqrt_p25519);
+  // functionaltest(all,"bignum_invsqrt_p25519_alt",test_bignum_invsqrt_p25519_alt);
+  // functionaltest(all,"bignum_iszero",test_bignum_iszero);
+  // functionaltest(bmi,"bignum_kmul_16_32",test_bignum_kmul_16_32);
+  // functionaltest(bmi,"bignum_kmul_32_64", test_bignum_kmul_32_64);
+  // functionaltest(bmi,"bignum_ksqr_16_32",test_bignum_ksqr_16_32);
+  // functionaltest(bmi,"bignum_ksqr_32_64",test_bignum_ksqr_32_64);
+  // functionaltest(all,"bignum_le",test_bignum_le);
+  // functionaltest(all,"bignum_littleendian_4",test_bignum_littleendian_4);
+  // functionaltest(all,"bignum_littleendian_6",test_bignum_littleendian_6);
+  // functionaltest(all,"bignum_lt",test_bignum_lt);
+  // functionaltest(all,"bignum_madd",test_bignum_madd);
+  // functionaltest(bmi,"bignum_madd_n25519",test_bignum_madd_n25519);
+  // functionaltest(all,"bignum_madd_n25519_alt",test_bignum_madd_n25519_alt);
+  // functionaltest(all,"bignum_mod_m25519_4",test_bignum_mod_m25519_4);
+  // functionaltest(all,"bignum_mod_n25519",test_bignum_mod_n25519);
+  // functionaltest(all,"bignum_mod_n25519_4",test_bignum_mod_n25519_4);
+  // functionaltest(bmi,"bignum_mod_n256",test_bignum_mod_n256);
+  // functionaltest(all,"bignum_mod_n256_4",test_bignum_mod_n256_4);
+  // functionaltest(all,"bignum_mod_n256_alt",test_bignum_mod_n256_alt);
+  // functionaltest(all,"bignum_mod_n256k1_4",test_bignum_mod_n256k1_4);
+  // functionaltest(bmi,"bignum_mod_n384",test_bignum_mod_n384);
+  // functionaltest(all,"bignum_mod_n384_6",test_bignum_mod_n384_6);
+  // functionaltest(all,"bignum_mod_n384_alt",test_bignum_mod_n384_alt);
+  // functionaltest(bmi,"bignum_mod_n521_9",test_bignum_mod_n521_9);
+  // functionaltest(all,"bignum_mod_n521_9_alt",test_bignum_mod_n521_9_alt);
+  // functionaltest(bmi,"bignum_mod_nsm2",test_bignum_mod_nsm2);
+  // functionaltest(all,"bignum_mod_nsm2_4",test_bignum_mod_nsm2_4);
+  // functionaltest(all,"bignum_mod_nsm2_alt",test_bignum_mod_nsm2_alt);
+  // functionaltest(all,"bignum_mod_p25519_4",test_bignum_mod_p25519_4);
+  // functionaltest(bmi,"bignum_mod_p256",test_bignum_mod_p256);
+  // functionaltest(all,"bignum_mod_p256_4",test_bignum_mod_p256_4);
+  // functionaltest(all,"bignum_mod_p256_alt",test_bignum_mod_p256_alt);
+  // functionaltest(all,"bignum_mod_p256k1_4",test_bignum_mod_p256k1_4);
+  // functionaltest(bmi,"bignum_mod_p384",test_bignum_mod_p384);
+  // functionaltest(all,"bignum_mod_p384_6",test_bignum_mod_p384_6);
+  // functionaltest(all,"bignum_mod_p384_alt",test_bignum_mod_p384_alt);
+  // functionaltest(all,"bignum_mod_p521_9",test_bignum_mod_p521_9);
+  // functionaltest(all,"bignum_mod_sm2",test_bignum_mod_sm2);
+  // functionaltest(all,"bignum_mod_sm2_4",test_bignum_mod_sm2_4);
+  // functionaltest(all,"bignum_modadd",test_bignum_modadd);
+  // functionaltest(all,"bignum_moddouble",test_bignum_moddouble);
+  // functionaltest(all,"bignum_modexp",test_bignum_modexp);
+  // functionaltest(all,"bignum_modifier",test_bignum_modifier);
+  // functionaltest(all,"bignum_modinv",test_bignum_modinv);
+  // functionaltest(all,"bignum_modoptneg",test_bignum_modoptneg);
+  // functionaltest(all,"bignum_modsub",test_bignum_modsub);
+  // functionaltest(all,"bignum_montifier",test_bignum_montifier);
+  // functionaltest(all,"bignum_montinv_p256",test_bignum_montinv_p256);
+  // functionaltest(all,"bignum_montinv_p384",test_bignum_montinv_p384);
+  // functionaltest(all,"bignum_montinv_sm2",test_bignum_montinv_sm2);
+  // functionaltest(all,"bignum_montmul",test_bignum_montmul);
+  // functionaltest(bmi,"bignum_montmul_p256",test_bignum_montmul_p256);
+  // functionaltest(all,"bignum_montmul_p256_alt",test_bignum_montmul_p256_alt);
+  // functionaltest(bmi,"bignum_montmul_p256k1",test_bignum_montmul_p256k1);
+  // functionaltest(all,"bignum_montmul_p256k1_alt",test_bignum_montmul_p256k1_alt);
+  // functionaltest(bmi,"bignum_montmul_p384",test_bignum_montmul_p384);
+  // functionaltest(all,"bignum_montmul_p384_alt",test_bignum_montmul_p384_alt);
+  // functionaltest(bmi,"bignum_montmul_p521",test_bignum_montmul_p521);
+  // functionaltest(all,"bignum_montmul_p521_alt",test_bignum_montmul_p521_alt);
+  // functionaltest(bmi,"bignum_montmul_sm2",test_bignum_montmul_sm2);
+  // functionaltest(all,"bignum_montmul_sm2_alt",test_bignum_montmul_sm2_alt);
+  // functionaltest(all,"bignum_montredc",test_bignum_montredc);
+  // functionaltest(all,"bignum_montsqr",test_bignum_montsqr);
+  // functionaltest(bmi,"bignum_montsqr_p256",test_bignum_montsqr_p256);
+  // functionaltest(all,"bignum_montsqr_p256_alt",test_bignum_montsqr_p256_alt);
+  // functionaltest(bmi,"bignum_montsqr_p256k1",test_bignum_montsqr_p256k1);
+  // functionaltest(all,"bignum_montsqr_p256k1_alt",test_bignum_montsqr_p256k1_alt);
+  // functionaltest(bmi,"bignum_montsqr_p384",test_bignum_montsqr_p384);
+  // functionaltest(all,"bignum_montsqr_p384_alt",test_bignum_montsqr_p384_alt);
+  // functionaltest(bmi,"bignum_montsqr_p521",test_bignum_montsqr_p521);
+  // functionaltest(all,"bignum_montsqr_p521_alt",test_bignum_montsqr_p521_alt);
+  // functionaltest(bmi,"bignum_montsqr_sm2",test_bignum_montsqr_sm2);
+  // functionaltest(all,"bignum_montsqr_sm2_alt",test_bignum_montsqr_sm2_alt);
+  // functionaltest(all,"bignum_mul",test_bignum_mul);
+  // functionaltest(bmi,"bignum_mul_4_8",test_bignum_mul_4_8);
+  // functionaltest(all,"bignum_mul_4_8_alt",test_bignum_mul_4_8_alt);
+  // functionaltest(bmi,"bignum_mul_6_12",test_bignum_mul_6_12);
+  // functionaltest(all,"bignum_mul_6_12_alt",test_bignum_mul_6_12_alt);
+  // functionaltest(bmi,"bignum_mul_8_16",test_bignum_mul_8_16);
+  // functionaltest(all,"bignum_mul_8_16_alt",test_bignum_mul_8_16_alt);
+  // functionaltest(bmi,"bignum_mul_p25519",test_bignum_mul_p25519);
+  // functionaltest(all,"bignum_mul_p25519_alt",test_bignum_mul_p25519_alt);
+  // functionaltest(bmi,"bignum_mul_p256k1",test_bignum_mul_p256k1);
+  // functionaltest(all,"bignum_mul_p256k1_alt",test_bignum_mul_p256k1_alt);
+  // functionaltest(bmi,"bignum_mul_p521",test_bignum_mul_p521);
+  // functionaltest(all,"bignum_mul_p521_alt",test_bignum_mul_p521_alt);
+  // functionaltest(all,"bignum_muladd10",test_bignum_muladd10);
+  // functionaltest(all,"bignum_mux",test_bignum_mux);
+  // functionaltest(all,"bignum_mux16",test_bignum_mux16);
+  // functionaltest(all,"bignum_mux_4",test_bignum_mux_4);
+  // functionaltest(all,"bignum_mux_6",test_bignum_mux_6);
+  // functionaltest(all,"bignum_neg_p25519",test_bignum_neg_p25519);
+  // functionaltest(all,"bignum_neg_p256",test_bignum_neg_p256);
+  // functionaltest(all,"bignum_neg_p256k1",test_bignum_neg_p256k1);
+  // functionaltest(all,"bignum_neg_p384",test_bignum_neg_p384);
+  // functionaltest(all,"bignum_neg_p521",test_bignum_neg_p521);
+  // functionaltest(all,"bignum_neg_sm2",test_bignum_neg_sm2);
+  // functionaltest(all,"bignum_negmodinv",test_bignum_negmodinv);
+  // functionaltest(all,"bignum_nonzero",test_bignum_nonzero);
+  // functionaltest(all,"bignum_nonzero_4",test_bignum_nonzero_4);
+  // functionaltest(all,"bignum_nonzero_6",test_bignum_nonzero_6);
+  // functionaltest(all,"bignum_normalize",test_bignum_normalize);
+  // functionaltest(all,"bignum_odd",test_bignum_odd);
+  // functionaltest(all,"bignum_of_word",test_bignum_of_word);
+  // functionaltest(all,"bignum_optadd",test_bignum_optadd);
+  // functionaltest(all,"bignum_optneg",test_bignum_optneg);
+  // functionaltest(all,"bignum_optneg_p25519",test_bignum_optneg_p25519);
+  // functionaltest(all,"bignum_optneg_p256",test_bignum_optneg_p256);
+  // functionaltest(all,"bignum_optneg_p256k1",test_bignum_optneg_p256k1);
+  // functionaltest(all,"bignum_optneg_p384",test_bignum_optneg_p384);
+  // functionaltest(all,"bignum_optneg_p521",test_bignum_optneg_p521);
+  // functionaltest(all,"bignum_optneg_sm2",test_bignum_optneg_sm2);
+  // functionaltest(all,"bignum_optsub",test_bignum_optsub);
+  // functionaltest(all,"bignum_optsubadd",test_bignum_optsubadd);
+  // functionaltest(all,"bignum_pow2",test_bignum_pow2);
+  // functionaltest(all,"bignum_shl_small",test_bignum_shl_small);
+  // functionaltest(all,"bignum_shr_small",test_bignum_shr_small);
+  // functionaltest(all,"bignum_sqr",test_bignum_sqr);
+  // functionaltest(bmi,"bignum_sqr_4_8",test_bignum_sqr_4_8);
+  // functionaltest(all,"bignum_sqr_4_8_alt",test_bignum_sqr_4_8_alt);
+  // functionaltest(bmi,"bignum_sqr_6_12",test_bignum_sqr_6_12);
+  // functionaltest(all,"bignum_sqr_6_12_alt",test_bignum_sqr_6_12_alt);
+  // functionaltest(bmi,"bignum_sqr_8_16",test_bignum_sqr_8_16);
+  // functionaltest(all,"bignum_sqr_8_16_alt",test_bignum_sqr_8_16_alt);
+  // functionaltest(bmi,"bignum_sqr_p25519",test_bignum_sqr_p25519);
+  // functionaltest(all,"bignum_sqr_p25519_alt",test_bignum_sqr_p25519_alt);
+  // functionaltest(bmi,"bignum_sqr_p256k1",test_bignum_sqr_p256k1);
+  // functionaltest(all,"bignum_sqr_p256k1_alt",test_bignum_sqr_p256k1_alt);
+  // functionaltest(bmi,"bignum_sqr_p521",test_bignum_sqr_p521);
+  // functionaltest(all,"bignum_sqr_p521_alt",test_bignum_sqr_p521_alt);
+  // functionaltest(bmi,"bignum_sqrt_p25519",test_bignum_sqrt_p25519);
+  // functionaltest(all,"bignum_sqrt_p25519_alt",test_bignum_sqrt_p25519_alt);
+  // functionaltest(all,"bignum_sub",test_bignum_sub);
+  // functionaltest(all,"bignum_sub_p25519",test_bignum_sub_p25519);
+  // functionaltest(all,"bignum_sub_p256",test_bignum_sub_p256);
+  // functionaltest(all,"bignum_sub_p256k1",test_bignum_sub_p256k1);
+  // functionaltest(all,"bignum_sub_p384",test_bignum_sub_p384);
+  // functionaltest(all,"bignum_sub_p521",test_bignum_sub_p521);
+  // functionaltest(all,"bignum_sub_sm2",test_bignum_sub_sm2);
+  // functionaltest(all,"bignum_tobebytes_4",test_bignum_tobebytes_4);
+  // functionaltest(all,"bignum_tobebytes_6",test_bignum_tobebytes_6);
+  // functionaltest(all,"bignum_tolebytes_4",test_bignum_tolebytes_4);
+  // functionaltest(all,"bignum_tolebytes_6",test_bignum_tolebytes_6);
+  // functionaltest(all,"bignum_tolebytes_p521",test_bignum_tolebytes_p521);
+  // functionaltest(bmi,"bignum_tomont_p256",test_bignum_tomont_p256);
+  // functionaltest(all,"bignum_tomont_p256_alt",test_bignum_tomont_p256_alt);
+  // functionaltest(bmi,"bignum_tomont_p256k1",test_bignum_tomont_p256k1);
+  // functionaltest(all,"bignum_tomont_p256k1_alt",test_bignum_tomont_p256k1_alt);
+  // functionaltest(bmi,"bignum_tomont_p384",test_bignum_tomont_p384);
+  // functionaltest(all,"bignum_tomont_p384_alt",test_bignum_tomont_p384_alt);
+  // functionaltest(all,"bignum_tomont_p521",test_bignum_tomont_p521);
+  // functionaltest(all,"bignum_tomont_sm2",test_bignum_tomont_sm2);
+  // functionaltest(bmi,"bignum_triple_p256",test_bignum_triple_p256);
+  // functionaltest(all,"bignum_triple_p256_alt",test_bignum_triple_p256_alt);
+  // functionaltest(bmi,"bignum_triple_p256k1",test_bignum_triple_p256k1);
+  // functionaltest(all,"bignum_triple_p256k1_alt",test_bignum_triple_p256k1_alt);
+  // functionaltest(bmi,"bignum_triple_p384",test_bignum_triple_p384);
+  // functionaltest(all,"bignum_triple_p384_alt",test_bignum_triple_p384_alt);
+  // functionaltest(bmi,"bignum_triple_p521",test_bignum_triple_p521);
+  // functionaltest(all,"bignum_triple_p521_alt",test_bignum_triple_p521_alt);
+  // functionaltest(bmi,"bignum_triple_sm2",test_bignum_triple_sm2);
+  // functionaltest(all,"bignum_triple_sm2_alt",test_bignum_triple_sm2_alt);
+  // functionaltest(bmi,"curve25519_ladderstep",test_curve25519_ladderstep);
+  // functionaltest(all,"curve25519_ladderstep_alt",test_curve25519_ladderstep_alt);
+  // functionaltest(bmi,"curve25519_pxscalarmul",test_curve25519_pxscalarmul);
+  // functionaltest(all,"curve25519_pxscalarmul_alt",test_curve25519_pxscalarmul_alt);
+  // functionaltest(bmi,"curve25519_x25519",test_curve25519_x25519);
+  // functionaltest(all,"curve25519_x25519_alt",test_curve25519_x25519_alt);
+  // functionaltest(bmi,"curve25519_x25519_byte",test_curve25519_x25519_byte);
+  // functionaltest(all,"curve25519_x25519_byte_alt",test_curve25519_x25519_byte_alt);
+  // functionaltest(bmi,"curve25519_x25519base",test_curve25519_x25519base);
+  // functionaltest(all,"curve25519_x25519base_alt",test_curve25519_x25519base_alt);
+  // functionaltest(bmi,"curve25519_x25519base_byte",test_curve25519_x25519base_byte);
+  // functionaltest(all,"curve25519_x25519base_byte_alt",test_curve25519_x25519base_byte_alt);
+  // functionaltest(bmi,"edwards25519_decode",test_edwards25519_decode);
+  // functionaltest(all,"edwards25519_decode_alt",test_edwards25519_decode_alt);
+  // functionaltest(all,"edwards25519_encode",test_edwards25519_encode);
+  // functionaltest(bmi,"edwards25519_epadd",test_edwards25519_epadd);
+  // functionaltest(all,"edwards25519_epadd_alt",test_edwards25519_epadd_alt);
+  // functionaltest(bmi,"edwards25519_epdouble",test_edwards25519_epdouble);
+  // functionaltest(all,"edwards25519_epdouble_alt",test_edwards25519_epdouble_alt);
+  // functionaltest(bmi,"edwards25519_pdouble",test_edwards25519_pdouble);
+  // functionaltest(all,"edwards25519_pdouble_alt",test_edwards25519_pdouble_alt);
+  // functionaltest(bmi,"edwards25519_pepadd",test_edwards25519_pepadd);
+  // functionaltest(all,"edwards25519_pepadd_alt",test_edwards25519_pepadd_alt);
+  // functionaltest(bmi,"edwards25519_scalarmulbase",test_edwards25519_scalarmulbase);
+  // functionaltest(all,"edwards25519_scalarmulbase_alt",test_edwards25519_scalarmulbase_alt);
+  // functionaltest(bmi,"edwards25519_scalarmuldouble",test_edwards25519_scalarmuldouble);
+  // functionaltest(all,"edwards25519_scalarmuldouble_alt",test_edwards25519_scalarmuldouble_alt);
+  // functionaltest(bmi,"p256_montjadd",test_p256_montjadd);
+  // functionaltest(all,"p256_montjadd_alt",test_p256_montjadd_alt);
+  // functionaltest(bmi,"p256_montjdouble",test_p256_montjdouble);
+  // functionaltest(all,"p256_montjdouble_alt",test_p256_montjdouble_alt);
+  // functionaltest(bmi,"p256_montjmixadd",test_p256_montjmixadd);
+  // functionaltest(all,"p256_montjmixadd_alt",test_p256_montjmixadd_alt);
+  // functionaltest(bmi,"p256_montjscalarmul",test_p256_montjscalarmul);
+  // functionaltest(all,"p256_montjscalarmul_alt",test_p256_montjscalarmul_alt);
+  // functionaltest(bmi,"p256_scalarmul",test_p256_scalarmul);
+  // functionaltest(all,"p256_scalarmul_alt",test_p256_scalarmul_alt);
+  // functionaltest(bmi,"p256_scalarmulbase",test_p256_scalarmulbase);
+  // functionaltest(all,"p256_scalarmulbase_alt",test_p256_scalarmulbase_alt);
+  // functionaltest(bmi,"p384_montjadd",test_p384_montjadd);
+  // functionaltest(all,"p384_montjadd_alt",test_p384_montjadd_alt);
+  // functionaltest(bmi,"p384_montjdouble",test_p384_montjdouble);
+  // functionaltest(all,"p384_montjdouble_alt",test_p384_montjdouble_alt);
+  // functionaltest(bmi,"p384_montjmixadd",test_p384_montjmixadd);
+  // functionaltest(all,"p384_montjmixadd_alt",test_p384_montjmixadd_alt);
+  // functionaltest(bmi,"p384_montjscalarmul",test_p384_montjscalarmul);
+  // functionaltest(all,"p384_montjscalarmul_alt",test_p384_montjscalarmul_alt);
+  // functionaltest(bmi,"p521_jadd",test_p521_jadd);
+  // functionaltest(all,"p521_jadd_alt",test_p521_jadd_alt);
+  // functionaltest(bmi,"p521_jdouble",test_p521_jdouble);
+  // functionaltest(all,"p521_jdouble_alt",test_p521_jdouble_alt);
+  // functionaltest(bmi,"p521_jmixadd",test_p521_jmixadd);
+  // functionaltest(all,"p521_jmixadd_alt",test_p521_jmixadd_alt);
+  // functionaltest(bmi,"p521_jscalarmul",test_p521_jscalarmul);
+  // functionaltest(all,"p521_jscalarmul_alt",test_p521_jscalarmul_alt);
+  // functionaltest(bmi,"secp256k1_jadd",test_secp256k1_jadd);
+  // functionaltest(all,"secp256k1_jadd_alt",test_secp256k1_jadd_alt);
+  // functionaltest(bmi,"secp256k1_jdouble",test_secp256k1_jdouble);
+  // functionaltest(all,"secp256k1_jdouble_alt",test_secp256k1_jdouble_alt);
+  // functionaltest(bmi,"secp256k1_jmixadd",test_secp256k1_jmixadd);
+  // functionaltest(all,"secp256k1_jmixadd_alt",test_secp256k1_jmixadd_alt);
+  // functionaltest(bmi,"sm2_montjadd",test_sm2_montjadd);
+  // functionaltest(all,"sm2_montjadd_alt",test_sm2_montjadd_alt);
+  // functionaltest(bmi,"sm2_montjdouble",test_sm2_montjdouble);
+  // functionaltest(all,"sm2_montjdouble_alt",test_sm2_montjdouble_alt);
+  // functionaltest(bmi,"sm2_montjmixadd",test_sm2_montjmixadd);
+  // functionaltest(all,"sm2_montjmixadd_alt",test_sm2_montjmixadd_alt);
+  // functionaltest(bmi,"sm2_montjscalarmul",test_sm2_montjscalarmul);
+  // functionaltest(all,"sm2_montjscalarmul_alt",test_sm2_montjscalarmul_alt);
+  // functionaltest(all,"word_bytereverse",test_word_bytereverse);
+  // functionaltest(all,"word_clz",test_word_clz);
+  // functionaltest(all,"word_ctz",test_word_ctz);
+  // functionaltest(all,"word_divstep59",test_word_divstep59);
+  // functionaltest(all,"word_max",test_word_max);
+  // functionaltest(all,"word_min",test_word_min);
+  // functionaltest(all,"word_negmodinv",test_word_negmodinv);
+  // functionaltest(all,"word_popcount",test_word_popcount);
+  // functionaltest(all,"word_recip",test_word_recip);
 
   if (get_arch_name() == ARCH_AARCH64) {
     functionaltest(all,"bignum_copy_row_from_table_8n",test_bignum_copy_row_from_table_8n);
@@ -13769,18 +14253,20 @@ int main(int argc, char *argv[])
 
   if (extrastrigger) function_to_test = "_";
 
-  functionaltest(bmi,"known value tests",test_known_values);
+  // functionaltest(bmi,"known value tests for p384",test_known_values_p384);
+  functionaltest(aes,"known value tests for aes-xts encrypt",test_known_values_xts_encrypt);
+  functionaltest(aes,"known value tests for aes-xts decrypt",test_known_values_xts_decrypt);
 
-  functionaltest(bmi,"curve25519_x25519 (TweetNaCl)",test_curve25519_x25519_tweetnacl);
-  functionaltest(all,"curve25519_x25519_alt (TweetNaCl)",test_curve25519_x25519_alt_tweetnacl);
-  functionaltest(bmi,"curve25519_x25519_byte (TweetNaCl)",test_curve25519_x25519_byte_tweetnacl);
-  functionaltest(all,"curve25519_x25519_byte+alt (TweetNaCl)",test_curve25519_x25519_byte_alt_tweetnacl);
-  functionaltest(bmi,"curve25519_x25519base (TweetNaCl)",test_curve25519_x25519base_tweetnacl);
-  functionaltest(all,"curve25519_x25519base_alt (TweetNaCl)",test_curve25519_x25519base_alt_tweetnacl);
-  functionaltest(bmi,"curve25519_x25519base_byte (TweetNaCl)",test_curve25519_x25519base_byte_tweetnacl);
-  functionaltest(all,"curve25519_x25519base_byte_alt (TweetNaCl)",test_curve25519_x25519base_byte_alt_tweetnacl);
-  functionaltest(bmi,"edwards25519_scalarmulbase (TweetNaCl)",test_edwards25519_scalarmulbase_tweetnacl);
-  functionaltest(all,"edwards25519_scalarmulbase_alt (TweetNaCl)",test_edwards25519_scalarmulbase_alt_tweetnacl);
+  // functionaltest(bmi,"curve25519_x25519 (TweetNaCl)",test_curve25519_x25519_tweetnacl);
+  // functionaltest(all,"curve25519_x25519_alt (TweetNaCl)",test_curve25519_x25519_alt_tweetnacl);
+  // functionaltest(bmi,"curve25519_x25519_byte (TweetNaCl)",test_curve25519_x25519_byte_tweetnacl);
+  // functionaltest(all,"curve25519_x25519_byte+alt (TweetNaCl)",test_curve25519_x25519_byte_alt_tweetnacl);
+  // functionaltest(bmi,"curve25519_x25519base (TweetNaCl)",test_curve25519_x25519base_tweetnacl);
+  // functionaltest(all,"curve25519_x25519base_alt (TweetNaCl)",test_curve25519_x25519base_alt_tweetnacl);
+  // functionaltest(bmi,"curve25519_x25519base_byte (TweetNaCl)",test_curve25519_x25519base_byte_tweetnacl);
+  // functionaltest(all,"curve25519_x25519base_byte_alt (TweetNaCl)",test_curve25519_x25519base_byte_alt_tweetnacl);
+  // functionaltest(bmi,"edwards25519_scalarmulbase (TweetNaCl)",test_edwards25519_scalarmulbase_tweetnacl);
+  // functionaltest(all,"edwards25519_scalarmulbase_alt (TweetNaCl)",test_edwards25519_scalarmulbase_alt_tweetnacl);
 
   if (successes == tested)
    { printf("All %d tests run, all passed\n",successes);
