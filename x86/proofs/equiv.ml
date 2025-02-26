@@ -156,8 +156,11 @@ let X86_N_BASIC_STEP_TAC =
   fun decode_th sname store_inst_term_to (asl,w) ->
     (* w = `eventually_n _ {stepn} _ {sv}` *)
     let sv = rand w and sv' = mk_var(sname,x86_ty) in
+    let _ = print_term sv in
     let atm = mk_comb(mk_comb(x86_tm,sv),sv') in
+    let _ = print_term atm in
     let eth = X86_CONV decode_th (map snd asl) atm in
+    let _ = print_thm eth in
     (* store the decoded instruction at store_inst_term_to *)
     (match store_inst_term_to with | Some r -> r := rhs (concl eth) | None -> ());
     let stepn = dest_numeral(rand(rator(rator w))) in
@@ -188,26 +191,32 @@ let X86_N_STEP_TAC (mc_length_th,decode_ths) subths sname
                   (store_update_to:(thm list * thm list) ref option)
                   (store_inst_term_to: term ref option)  =
   (*** This does the basic decoding setup ***)
-
+  let _ = print_string "In X86_N_STEP_TAC sname:" in
+  let _ = print_string sname in
   X86_N_BASIC_STEP_TAC decode_ths sname store_inst_term_to THEN
+  PRINT_TAC "X86_N_STEP_TAC1" THEN
 
   (*** This part shows the code isn't self-modifying ***)
 
   NONSELFMODIFYING_STATE_UPDATE_TAC (MATCH_MP bytes_loaded_update mc_length_th) THEN
+  PRINT_TAC "X86_N_STEP_TAC1" THEN
 
   (*** Attempt also to show subroutines aren't modified, if applicable ***)
 
   MAP_EVERY (TRY o NONSELFMODIFYING_STATE_UPDATE_TAC o
     MATCH_MP bytes_loaded_update o CONJUNCT1) subths THEN
+  PRINT_TAC "X86_N_STEP_TAC1" THEN
 
   (*** This part produces any updated versions of existing asms ***)
 
   ASSUMPTION_STATE_UPDATE_TAC THEN
+  PRINT_TAC "X86_N_STEP_TAC1" THEN
 
   (*** Produce updated "MAYCHANGE" assumption ***)
 
   MAYCHANGE_STATE_UPDATE_TAC THEN
-
+  PRINT_TAC "X86_N_STEP_TAC1" THEN
+  
   (*** This adds state component theorems for the updates ***)
   (*** Could also assume th itself but I throw it away   ***)
 
@@ -245,6 +254,7 @@ let X86_N_STEP_TAC (mc_length_th,decode_ths) subths sname
    TODO: receive dead value info & use it, as X86_N_STEPS_TAC does *)
 let X86_N_STEPS_TAC th snums stname_suffix stnames_no_discard =
   let stnames = List.map (fun s -> s ^ stname_suffix) (statenames "s" snums) in
+  let _ = print_int (List.length stnames) in
   MAP_EVERY (fun stname ->
     time (X86_N_STEP_TAC th [] stname None) None THEN
           DISCARD_OLDSTATE_AGGRESSIVELY_TAC (stname::stnames_no_discard)
@@ -381,11 +391,23 @@ let X86_N_STUTTER_LEFT_TAC exec_th (snames:int list): tactic =
   W (fun (asl,w) ->
     (* get the state name of the 'right' program *)
     let t' = fst (dest_comb w) in
+    let _ = print_string "t':" in
+    let _ = print_term t' in
+    let _ = print_string "\n" in
     let inner_eventually = snd (dest_abs (snd (dest_comb (t')))) in
+    let _ = print_string "inner_eventually:" in
+    let _ = print_term inner_eventually in
+    let _ = print_string "\n" in
     let sname = fst (dest_var (snd (dest_comb inner_eventually))) in
+    let _ = print_string "In X86_N_STUTTER_LEFT_TAC sname:" in
+    let _ = print_string sname in
+    let _ = print_string "\n" in
     STASH_ASMS_OF_READ_STATES [sname] THEN
+    PRINT_TAC "here1" THEN
     X86_N_STEPS_TAC exec_th snames "" [] THEN
+    PRINT_TAC "here2" THEN
     RECOVER_ASMS_OF_READ_STATES THEN
+    PRINT_TAC "here3" THEN
     CLARIFY_TAC);;
 
 let X86_N_STUTTER_RIGHT_TAC exec_th (snames:int list) (st_suffix:string)

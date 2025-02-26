@@ -1118,3 +1118,20 @@ extern uint64_t word_popcount (uint64_t a);
 // Single-word reciprocal, 2^64 + ret = ceil(2^128/a) - 1 if MSB of "a" is set
 // Input a; output function return
 extern uint64_t word_recip (uint64_t a);
+
+// TODO
+struct aes_key_st {
+  uint64_t rd_key[30];
+  int rounds;
+};
+typedef struct aes_key_st AES_KEY;
+
+extern void aes_hw_xts_encrypt(const uint8_t *inp, uint8_t *out,size_t len,
+  const AES_KEY *key1, const AES_KEY *key2,
+  const uint8_t iv[16]);
+extern void aes_hw_xts_encrypt_clean(const uint8_t *inp, uint8_t *out,size_t len,
+  const AES_KEY *key1, const AES_KEY *key2,
+  const uint8_t iv[16]);
+extern void aes_hw_xts_decrypt(const uint8_t *in, uint8_t *out, size_t len,
+  const AES_KEY *key1, const AES_KEY *key2,
+  const uint8_t iv[16]);

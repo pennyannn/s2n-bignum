@@ -614,8 +614,9 @@ let STASH_ASMS_OF_READ_STATES (stnames:string list): tactic =
         let s = ref "" in
         reads_state (concl th) s && mem !s stnames)
       asl in
+    let _ = print_string "haha" in
     stashed_asms := matched_asms::!stashed_asms;
-    ALL_TAC (others,g);;
+    (PRINT_TAC "STASH finished" THEN ALL_TAC) (others,g);;
 
 let RECOVER_ASMS_OF_READ_STATES: tactic =
   fun (asl,g) ->

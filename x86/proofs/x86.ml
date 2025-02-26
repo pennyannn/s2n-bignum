@@ -2847,6 +2847,8 @@ let is_read_events (t:term) = false;;
 
 let X86_CONV (decode_ths:thm option array) ths tm =
   (* Find `read RIP .. = ..` from ths (assumptions). *)
+  let _ = print_string "In X86_CONV, printing tm\n" in
+  let _ = print_term tm in
   let pc_th = try find
     (fun th ->
       let c = concl th in
@@ -2925,7 +2927,12 @@ let X86_BASIC_STEP_TAC =
   let x86_tm = `x86` and x86_ty = `:x86state` in
   fun (decode_ths: thm option array) sname (asl,w) ->
     let sv = rand w and sv' = mk_var(sname,x86_ty) in
+    let _ = print_string "sv: " in
+    let _ = print_term sv in
+    let _ = print_string "sv': " in
+    let _ = print_term sv' in
     let atm = mk_comb(mk_comb(x86_tm,sv),sv') in
+    let _ = print_term atm in
     let eth = X86_CONV decode_ths (map snd asl) atm in
     (GEN_REWRITE_TAC I [eventually_CASES] THEN DISJ2_TAC THEN CONJ_TAC THENL
      [GEN_REWRITE_TAC BINDER_CONV [eth] THEN CONV_TAC EXISTS_NONTRIVIAL_CONV;

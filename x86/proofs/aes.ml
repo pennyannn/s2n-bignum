@@ -6,7 +6,7 @@ needs "common/aes.ml";;
 
 (* References:
    Intel 64 and IA-32 Architectures Software Developer's Manual Volume 1:
-     Basic Architecture, page 311-316
+     Basic Architecture, Vol 1. 12-19
    Intel 64 and IA-32 Architectures Software Developer's Manual Volume 2:
      Instruction Set Reference, A-Z, 2A 3-63
    White Paper: Intel Advanced Encryption Standard (AES) New Instructions Set *)
