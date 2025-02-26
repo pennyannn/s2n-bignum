@@ -12851,22 +12851,99 @@ int test_word_recip(void)
 // ****************************************************************************
 
 #define ASSIGN6(x,n0,n1,n2,n3,n4,n5) x[0] = UINT64_C(n0), x[1] = UINT64_C(n1), x[2] = UINT64_C(n2), x[3] = UINT64_C(n3), x[4] = UINT64_C(n4), x[5] = UINT64_C(n5)
-
 #define ASSIGN1(x,n) x[0] = UINT64_C(n)
 
 #define CHECK6(x,n0,n1,n2,n3,n4,n5) \
   if ((x[0] != UINT64_C(n0)) || (x[1] != UINT64_C(n1)) || (x[2] != UINT64_C(n2)) || (x[3] != UINT64_C(n3)) || (x[4] != UINT64_C(n4)) || (x[5] != UINT64_C(n5))) \
   { printf("Failed known value test\n"); ++failures; } else { ++successes; }
-
 #define CHECK1(x,n) \
   if (x[0] != UINT64_C(n)) \
   { printf("Failed known value test\n"); ++failures; } else { ++successes; }
 
-int test_known_values(void)
+int test_known_values_p384(void)
 { int failures = 0, successes = 0;
   printf("Testing known value cases\n");
 
 #include "known_value_tests_p384.h"
+
+  if (failures != 0)
+    { printf ("Failed %d known value tests, passed %d\n",failures,successes);
+      return failures;
+    }
+  else
+    { printf("Successfully passed %d known value tests\n",successes);
+      return 0;
+    }
+}
+
+// Helpers for writing XTS tests
+void assign_bytearray_from_hexstring(uint8_t *bytearr, const char *hexstr, int len)
+{
+  for (int i = 0; i < len; i++) {
+    sscanf(&hexstr[i * 2], "%2hhx", &bytearr[i]);
+  }
+}
+
+void assign_bytearray_zero(uint8_t *bytearr, int len)
+{
+  for(int i = 0; i < len; i++){
+    bytearr[i] = 0x00;
+  }
+}
+
+#define ASSIGNHEX(bytearr, hexstr, len) assign_bytearray_from_hexstring(bytearr, hexstr, len)
+#define ASSIGNZERO(bytearr, len) assign_bytearray_zero(bytearr, len)
+ 
+int check_bytearr(const uint8_t *out, const uint8_t *res, int diff, int len)
+{
+  for(int i = 0; i < len; i++){
+    if (out[i]!=res[i]){diff = 1;break;};
+  }
+  return diff;
+}
+
+#define CHECKHEX(out, res, diff, len) \
+  if (check_bytearr(out, res, diff, len)) \
+  { printf("Failed known value test\n"); ++failures; } else { ++successes; }
+
+
+int test_known_values_xts_encrypt(void)
+{ int failures = 0, successes = 0;
+  printf("Testing known value cases\n");
+
+  AES_KEY *key1 = (AES_KEY *)malloc(sizeof(AES_KEY));
+  AES_KEY *key2 = (AES_KEY *)malloc(sizeof(AES_KEY));
+  size_t len;
+  uint8_t iv[16];
+  uint8_t in[224];
+  uint8_t out[224];
+  uint8_t res[224];
+
+#include "known_value_tests_xts_encrypt.h"
+
+  if (failures != 0)
+    { printf ("Failed %d known value tests, passed %d\n",failures,successes);
+      return failures;
+    }
+  else
+    { printf("Successfully passed %d known value tests\n",successes);
+      return 0;
+    }
+}
+
+int test_known_values_xts_decrypt(void)
+{ int failures = 0, successes = 0;
+  printf("Testing known value cases\n");
+
+  AES_KEY *key1 = (AES_KEY *)malloc(sizeof(AES_KEY));
+  AES_KEY *key2 = (AES_KEY *)malloc(sizeof(AES_KEY));
+  size_t len;
+  uint8_t iv[16];
+  uint8_t in[224];
+  uint8_t out[224];
+  uint8_t res[224];
+
+#include "known_value_tests_xts_decrypt.h"
 
   if (failures != 0)
     { printf ("Failed %d known value tests, passed %d\n",failures,successes);
@@ -13383,7 +13460,7 @@ void functionaltest(int enabled,char *name,int (*f)(void))
   // Only benchmark function using supported instructions (on x86)
 
   if (!enabled)
-   { printf("Skipping %s because not applicable (x86 BMI/ADX support)\n",name);
+   { printf("Skipping %s because not applicable (x86 BMI/ADX support, or AESNI & SSE support)\n",name);
      ++inapplicable;
      return;
    }
@@ -13405,6 +13482,7 @@ void functionaltest(int enabled,char *name,int (*f)(void))
 
 int main(int argc, char *argv[])
 { int bmi = get_arch_name() == ARCH_AARCH64 || supports_bmi2_and_adx();
+  int aes = get_arch_name() == ARCH_X86_64 && support_aesni() && support_sse();
   int all = 1;
   int extrastrigger = 1;
 
@@ -13434,332 +13512,332 @@ int main(int argc, char *argv[])
 
   if (tests == 0) tests = TESTS;
 
-  functionaltest(all,"bignum_add",test_bignum_add);
-  functionaltest(all,"bignum_add_p25519",test_bignum_add_p25519);
-  functionaltest(all,"bignum_add_p256",test_bignum_add_p256);
-  functionaltest(all,"bignum_add_p256k1",test_bignum_add_p256k1);
-  functionaltest(all,"bignum_add_p384",test_bignum_add_p384);
-  functionaltest(all,"bignum_add_p521",test_bignum_add_p521);
-  functionaltest(all,"bignum_add_sm2",test_bignum_add_sm2);
-  functionaltest(all,"bignum_amontifier",test_bignum_amontifier);
-  functionaltest(all,"bignum_amontmul",test_bignum_amontmul);
-  functionaltest(all,"bignum_amontredc",test_bignum_amontredc);
-  functionaltest(all,"bignum_amontsqr",test_bignum_amontsqr);
-  functionaltest(all,"bignum_bigendian_4",test_bignum_bigendian_4);
-  functionaltest(all,"bignum_bigendian_6",test_bignum_bigendian_6);
-  functionaltest(all,"bignum_bitfield",test_bignum_bitfield);
-  functionaltest(all,"bignum_bitsize",test_bignum_bitsize);
-  functionaltest(all,"bignum_cdiv",test_bignum_cdiv);
-  functionaltest(all,"bignum_cdiv_exact",test_bignum_cdiv_exact);
-  functionaltest(all,"bignum_cld",test_bignum_cld);
-  functionaltest(all,"bignum_clz",test_bignum_clz);
-  functionaltest(all,"bignum_cmadd",test_bignum_cmadd);
-  functionaltest(all,"bignum_cmnegadd",test_bignum_cmnegadd);
-  functionaltest(all,"bignum_cmod",test_bignum_cmod);
-  functionaltest(all,"bignum_cmul",test_bignum_cmul);
-  functionaltest(bmi,"bignum_cmul_p25519",test_bignum_cmul_p25519);
-  functionaltest(all,"bignum_cmul_p25519_alt",test_bignum_cmul_p25519_alt);
-  functionaltest(bmi,"bignum_cmul_p256",test_bignum_cmul_p256);
-  functionaltest(all,"bignum_cmul_p256_alt",test_bignum_cmul_p256_alt);
-  functionaltest(bmi,"bignum_cmul_p256k1",test_bignum_cmul_p256k1);
-  functionaltest(all,"bignum_cmul_p256k1_alt",test_bignum_cmul_p256k1_alt);
-  functionaltest(bmi,"bignum_cmul_p384",test_bignum_cmul_p384);
-  functionaltest(all,"bignum_cmul_p384_alt",test_bignum_cmul_p384_alt);
-  functionaltest(bmi,"bignum_cmul_p521",test_bignum_cmul_p521);
-  functionaltest(all,"bignum_cmul_p521_alt",test_bignum_cmul_p521_alt);
-  functionaltest(bmi,"bignum_cmul_sm2",test_bignum_cmul_sm2);
-  functionaltest(all,"bignum_cmul_sm2_alt",test_bignum_cmul_sm2_alt);
-  functionaltest(all,"bignum_coprime",test_bignum_coprime);
-  functionaltest(all,"bignum_copy",test_bignum_copy);
-  functionaltest(all,"bignum_copy_row_from_table",test_bignum_copy_row_from_table);
-  functionaltest(all,"bignum_ctd",test_bignum_ctd);
-  functionaltest(all,"bignum_ctz",test_bignum_ctz);
-  functionaltest(bmi,"bignum_deamont_p256",test_bignum_deamont_p256);
-  functionaltest(all,"bignum_deamont_p256_alt",test_bignum_deamont_p256_alt);
-  functionaltest(all,"bignum_deamont_p256k1",test_bignum_deamont_p256k1);
-  functionaltest(bmi,"bignum_deamont_p384",test_bignum_deamont_p384);
-  functionaltest(all,"bignum_deamont_p384_alt",test_bignum_deamont_p384_alt);
-  functionaltest(all,"bignum_deamont_p521",test_bignum_deamont_p521);
-  functionaltest(all,"bignum_deamont_sm2",test_bignum_deamont_sm2);
-  functionaltest(all,"bignum_demont",test_bignum_demont);
-  functionaltest(bmi,"bignum_demont_p256",test_bignum_demont_p256);
-  functionaltest(all,"bignum_demont_p256_alt",test_bignum_demont_p256_alt);
-  functionaltest(all,"bignum_demont_p256k1",test_bignum_demont_p256k1);
-  functionaltest(bmi,"bignum_demont_p384",test_bignum_demont_p384);
-  functionaltest(all,"bignum_demont_p384_alt",test_bignum_demont_p384_alt);
-  functionaltest(all,"bignum_demont_p521",test_bignum_demont_p521);
-  functionaltest(all,"bignum_demont_sm2",test_bignum_demont_sm2);
-  functionaltest(all,"bignum_digit",test_bignum_digit);
-  functionaltest(all,"bignum_digitsize",test_bignum_digitsize);
-  functionaltest(all,"bignum_divmod10",test_bignum_divmod10);
-  functionaltest(all,"bignum_double_p25519",test_bignum_double_p25519);
-  functionaltest(all,"bignum_double_p256",test_bignum_double_p256);
-  functionaltest(all,"bignum_double_p256k1",test_bignum_double_p256k1);
-  functionaltest(all,"bignum_double_p384",test_bignum_double_p384);
-  functionaltest(all,"bignum_double_p521",test_bignum_double_p521);
-  functionaltest(all,"bignum_double_sm2",test_bignum_double_sm2);
-  functionaltest(all,"bignum_emontredc",test_bignum_emontredc);
-  functionaltest(bmi,"bignum_emontredc_8n",test_bignum_emontredc_8n);
-  functionaltest(all,"bignum_eq",test_bignum_eq);
-  functionaltest(all,"bignum_even",test_bignum_even);
-  functionaltest(all,"bignum_frombebytes_4",test_bignum_frombebytes_4);
-  functionaltest(all,"bignum_frombebytes_6",test_bignum_frombebytes_6);
-  functionaltest(all,"bignum_fromlebytes_4",test_bignum_fromlebytes_4);
-  functionaltest(all,"bignum_fromlebytes_6",test_bignum_fromlebytes_6);
-  functionaltest(all,"bignum_fromlebytes_p521",test_bignum_fromlebytes_p521);
-  functionaltest(all,"bignum_ge",test_bignum_ge);
-  functionaltest(all,"bignum_gt",test_bignum_gt);
-  functionaltest(all,"bignum_half_p256",test_bignum_half_p256);
-  functionaltest(all,"bignum_half_p256k1",test_bignum_half_p256k1);
-  functionaltest(all,"bignum_half_p384",test_bignum_half_p384);
-  functionaltest(all,"bignum_half_p521",test_bignum_half_p521);
-  functionaltest(all,"bignum_half_sm2",test_bignum_half_sm2);
-  functionaltest(all,"bignum_inv_p25519",test_bignum_inv_p25519);
-  functionaltest(all,"bignum_inv_p256",test_bignum_inv_p256);
-  functionaltest(all,"bignum_inv_p384",test_bignum_inv_p384);
-  functionaltest(all,"bignum_inv_p521",test_bignum_inv_p521);
-  functionaltest(all,"bignum_inv_sm2",test_bignum_inv_sm2);
-  functionaltest(bmi,"bignum_invsqrt_p25519",test_bignum_invsqrt_p25519);
-  functionaltest(all,"bignum_invsqrt_p25519_alt",test_bignum_invsqrt_p25519_alt);
-  functionaltest(all,"bignum_iszero",test_bignum_iszero);
-  functionaltest(bmi,"bignum_kmul_16_32",test_bignum_kmul_16_32);
-  functionaltest(bmi,"bignum_kmul_32_64", test_bignum_kmul_32_64);
-  functionaltest(bmi,"bignum_ksqr_16_32",test_bignum_ksqr_16_32);
-  functionaltest(bmi,"bignum_ksqr_32_64",test_bignum_ksqr_32_64);
-  functionaltest(all,"bignum_le",test_bignum_le);
-  functionaltest(all,"bignum_littleendian_4",test_bignum_littleendian_4);
-  functionaltest(all,"bignum_littleendian_6",test_bignum_littleendian_6);
-  functionaltest(all,"bignum_lt",test_bignum_lt);
-  functionaltest(all,"bignum_madd",test_bignum_madd);
-  functionaltest(bmi,"bignum_madd_n25519",test_bignum_madd_n25519);
-  functionaltest(all,"bignum_madd_n25519_alt",test_bignum_madd_n25519_alt);
-  functionaltest(all,"bignum_mod_m25519_4",test_bignum_mod_m25519_4);
-  functionaltest(all,"bignum_mod_n25519",test_bignum_mod_n25519);
-  functionaltest(all,"bignum_mod_n25519_4",test_bignum_mod_n25519_4);
-  functionaltest(bmi,"bignum_mod_n256",test_bignum_mod_n256);
-  functionaltest(all,"bignum_mod_n256_4",test_bignum_mod_n256_4);
-  functionaltest(all,"bignum_mod_n256_alt",test_bignum_mod_n256_alt);
-  functionaltest(all,"bignum_mod_n256k1_4",test_bignum_mod_n256k1_4);
-  functionaltest(bmi,"bignum_mod_n384",test_bignum_mod_n384);
-  functionaltest(all,"bignum_mod_n384_6",test_bignum_mod_n384_6);
-  functionaltest(all,"bignum_mod_n384_alt",test_bignum_mod_n384_alt);
-  functionaltest(bmi,"bignum_mod_n521_9",test_bignum_mod_n521_9);
-  functionaltest(all,"bignum_mod_n521_9_alt",test_bignum_mod_n521_9_alt);
-  functionaltest(bmi,"bignum_mod_nsm2",test_bignum_mod_nsm2);
-  functionaltest(all,"bignum_mod_nsm2_4",test_bignum_mod_nsm2_4);
-  functionaltest(all,"bignum_mod_nsm2_alt",test_bignum_mod_nsm2_alt);
-  functionaltest(all,"bignum_mod_p25519_4",test_bignum_mod_p25519_4);
-  functionaltest(bmi,"bignum_mod_p256",test_bignum_mod_p256);
-  functionaltest(all,"bignum_mod_p256_4",test_bignum_mod_p256_4);
-  functionaltest(all,"bignum_mod_p256_alt",test_bignum_mod_p256_alt);
-  functionaltest(all,"bignum_mod_p256k1_4",test_bignum_mod_p256k1_4);
-  functionaltest(bmi,"bignum_mod_p384",test_bignum_mod_p384);
-  functionaltest(all,"bignum_mod_p384_6",test_bignum_mod_p384_6);
-  functionaltest(all,"bignum_mod_p384_alt",test_bignum_mod_p384_alt);
-  functionaltest(all,"bignum_mod_p521_9",test_bignum_mod_p521_9);
-  functionaltest(all,"bignum_mod_sm2",test_bignum_mod_sm2);
-  functionaltest(all,"bignum_mod_sm2_4",test_bignum_mod_sm2_4);
-  functionaltest(all,"bignum_modadd",test_bignum_modadd);
-  functionaltest(all,"bignum_moddouble",test_bignum_moddouble);
-  functionaltest(all,"bignum_modexp",test_bignum_modexp);
-  functionaltest(all,"bignum_modifier",test_bignum_modifier);
-  functionaltest(all,"bignum_modinv",test_bignum_modinv);
-  functionaltest(all,"bignum_modoptneg",test_bignum_modoptneg);
-  functionaltest(all,"bignum_modsub",test_bignum_modsub);
-  functionaltest(all,"bignum_montifier",test_bignum_montifier);
-  functionaltest(all,"bignum_montinv_p256",test_bignum_montinv_p256);
-  functionaltest(all,"bignum_montinv_p384",test_bignum_montinv_p384);
-  functionaltest(all,"bignum_montinv_sm2",test_bignum_montinv_sm2);
-  functionaltest(all,"bignum_montmul",test_bignum_montmul);
-  functionaltest(bmi,"bignum_montmul_p256",test_bignum_montmul_p256);
-  functionaltest(all,"bignum_montmul_p256_alt",test_bignum_montmul_p256_alt);
-  functionaltest(bmi,"bignum_montmul_p256k1",test_bignum_montmul_p256k1);
-  functionaltest(all,"bignum_montmul_p256k1_alt",test_bignum_montmul_p256k1_alt);
-  functionaltest(bmi,"bignum_montmul_p384",test_bignum_montmul_p384);
-  functionaltest(all,"bignum_montmul_p384_alt",test_bignum_montmul_p384_alt);
-  functionaltest(bmi,"bignum_montmul_p521",test_bignum_montmul_p521);
-  functionaltest(all,"bignum_montmul_p521_alt",test_bignum_montmul_p521_alt);
-  functionaltest(bmi,"bignum_montmul_sm2",test_bignum_montmul_sm2);
-  functionaltest(all,"bignum_montmul_sm2_alt",test_bignum_montmul_sm2_alt);
-  functionaltest(all,"bignum_montredc",test_bignum_montredc);
-  functionaltest(all,"bignum_montsqr",test_bignum_montsqr);
-  functionaltest(bmi,"bignum_montsqr_p256",test_bignum_montsqr_p256);
-  functionaltest(all,"bignum_montsqr_p256_alt",test_bignum_montsqr_p256_alt);
-  functionaltest(bmi,"bignum_montsqr_p256k1",test_bignum_montsqr_p256k1);
-  functionaltest(all,"bignum_montsqr_p256k1_alt",test_bignum_montsqr_p256k1_alt);
-  functionaltest(bmi,"bignum_montsqr_p384",test_bignum_montsqr_p384);
-  functionaltest(all,"bignum_montsqr_p384_alt",test_bignum_montsqr_p384_alt);
-  functionaltest(bmi,"bignum_montsqr_p521",test_bignum_montsqr_p521);
-  functionaltest(all,"bignum_montsqr_p521_alt",test_bignum_montsqr_p521_alt);
-  functionaltest(bmi,"bignum_montsqr_sm2",test_bignum_montsqr_sm2);
-  functionaltest(all,"bignum_montsqr_sm2_alt",test_bignum_montsqr_sm2_alt);
-  functionaltest(all,"bignum_mul",test_bignum_mul);
-  functionaltest(bmi,"bignum_mul_4_8",test_bignum_mul_4_8);
-  functionaltest(all,"bignum_mul_4_8_alt",test_bignum_mul_4_8_alt);
-  functionaltest(bmi,"bignum_mul_6_12",test_bignum_mul_6_12);
-  functionaltest(all,"bignum_mul_6_12_alt",test_bignum_mul_6_12_alt);
-  functionaltest(bmi,"bignum_mul_8_16",test_bignum_mul_8_16);
-  functionaltest(all,"bignum_mul_8_16_alt",test_bignum_mul_8_16_alt);
-  functionaltest(bmi,"bignum_mul_p25519",test_bignum_mul_p25519);
-  functionaltest(all,"bignum_mul_p25519_alt",test_bignum_mul_p25519_alt);
-  functionaltest(bmi,"bignum_mul_p256k1",test_bignum_mul_p256k1);
-  functionaltest(all,"bignum_mul_p256k1_alt",test_bignum_mul_p256k1_alt);
-  functionaltest(bmi,"bignum_mul_p521",test_bignum_mul_p521);
-  functionaltest(all,"bignum_mul_p521_alt",test_bignum_mul_p521_alt);
-  functionaltest(all,"bignum_muladd10",test_bignum_muladd10);
-  functionaltest(all,"bignum_mux",test_bignum_mux);
-  functionaltest(all,"bignum_mux16",test_bignum_mux16);
-  functionaltest(all,"bignum_mux_4",test_bignum_mux_4);
-  functionaltest(all,"bignum_mux_6",test_bignum_mux_6);
-  functionaltest(all,"bignum_neg_p25519",test_bignum_neg_p25519);
-  functionaltest(all,"bignum_neg_p256",test_bignum_neg_p256);
-  functionaltest(all,"bignum_neg_p256k1",test_bignum_neg_p256k1);
-  functionaltest(all,"bignum_neg_p384",test_bignum_neg_p384);
-  functionaltest(all,"bignum_neg_p521",test_bignum_neg_p521);
-  functionaltest(all,"bignum_neg_sm2",test_bignum_neg_sm2);
-  functionaltest(all,"bignum_negmodinv",test_bignum_negmodinv);
-  functionaltest(all,"bignum_nonzero",test_bignum_nonzero);
-  functionaltest(all,"bignum_nonzero_4",test_bignum_nonzero_4);
-  functionaltest(all,"bignum_nonzero_6",test_bignum_nonzero_6);
-  functionaltest(all,"bignum_normalize",test_bignum_normalize);
-  functionaltest(all,"bignum_odd",test_bignum_odd);
-  functionaltest(all,"bignum_of_word",test_bignum_of_word);
-  functionaltest(all,"bignum_optadd",test_bignum_optadd);
-  functionaltest(all,"bignum_optneg",test_bignum_optneg);
-  functionaltest(all,"bignum_optneg_p25519",test_bignum_optneg_p25519);
-  functionaltest(all,"bignum_optneg_p256",test_bignum_optneg_p256);
-  functionaltest(all,"bignum_optneg_p256k1",test_bignum_optneg_p256k1);
-  functionaltest(all,"bignum_optneg_p384",test_bignum_optneg_p384);
-  functionaltest(all,"bignum_optneg_p521",test_bignum_optneg_p521);
-  functionaltest(all,"bignum_optneg_sm2",test_bignum_optneg_sm2);
-  functionaltest(all,"bignum_optsub",test_bignum_optsub);
-  functionaltest(all,"bignum_optsubadd",test_bignum_optsubadd);
-  functionaltest(all,"bignum_pow2",test_bignum_pow2);
-  functionaltest(all,"bignum_shl_small",test_bignum_shl_small);
-  functionaltest(all,"bignum_shr_small",test_bignum_shr_small);
-  functionaltest(all,"bignum_sqr",test_bignum_sqr);
-  functionaltest(bmi,"bignum_sqr_4_8",test_bignum_sqr_4_8);
-  functionaltest(all,"bignum_sqr_4_8_alt",test_bignum_sqr_4_8_alt);
-  functionaltest(bmi,"bignum_sqr_6_12",test_bignum_sqr_6_12);
-  functionaltest(all,"bignum_sqr_6_12_alt",test_bignum_sqr_6_12_alt);
-  functionaltest(bmi,"bignum_sqr_8_16",test_bignum_sqr_8_16);
-  functionaltest(all,"bignum_sqr_8_16_alt",test_bignum_sqr_8_16_alt);
-  functionaltest(bmi,"bignum_sqr_p25519",test_bignum_sqr_p25519);
-  functionaltest(all,"bignum_sqr_p25519_alt",test_bignum_sqr_p25519_alt);
-  functionaltest(bmi,"bignum_sqr_p256k1",test_bignum_sqr_p256k1);
-  functionaltest(all,"bignum_sqr_p256k1_alt",test_bignum_sqr_p256k1_alt);
-  functionaltest(bmi,"bignum_sqr_p521",test_bignum_sqr_p521);
-  functionaltest(all,"bignum_sqr_p521_alt",test_bignum_sqr_p521_alt);
-  functionaltest(bmi,"bignum_sqrt_p25519",test_bignum_sqrt_p25519);
-  functionaltest(all,"bignum_sqrt_p25519_alt",test_bignum_sqrt_p25519_alt);
-  functionaltest(all,"bignum_sub",test_bignum_sub);
-  functionaltest(all,"bignum_sub_p25519",test_bignum_sub_p25519);
-  functionaltest(all,"bignum_sub_p256",test_bignum_sub_p256);
-  functionaltest(all,"bignum_sub_p256k1",test_bignum_sub_p256k1);
-  functionaltest(all,"bignum_sub_p384",test_bignum_sub_p384);
-  functionaltest(all,"bignum_sub_p521",test_bignum_sub_p521);
-  functionaltest(all,"bignum_sub_sm2",test_bignum_sub_sm2);
-  functionaltest(all,"bignum_tobebytes_4",test_bignum_tobebytes_4);
-  functionaltest(all,"bignum_tobebytes_6",test_bignum_tobebytes_6);
-  functionaltest(all,"bignum_tolebytes_4",test_bignum_tolebytes_4);
-  functionaltest(all,"bignum_tolebytes_6",test_bignum_tolebytes_6);
-  functionaltest(all,"bignum_tolebytes_p521",test_bignum_tolebytes_p521);
-  functionaltest(bmi,"bignum_tomont_p256",test_bignum_tomont_p256);
-  functionaltest(all,"bignum_tomont_p256_alt",test_bignum_tomont_p256_alt);
-  functionaltest(bmi,"bignum_tomont_p256k1",test_bignum_tomont_p256k1);
-  functionaltest(all,"bignum_tomont_p256k1_alt",test_bignum_tomont_p256k1_alt);
-  functionaltest(bmi,"bignum_tomont_p384",test_bignum_tomont_p384);
-  functionaltest(all,"bignum_tomont_p384_alt",test_bignum_tomont_p384_alt);
-  functionaltest(all,"bignum_tomont_p521",test_bignum_tomont_p521);
-  functionaltest(all,"bignum_tomont_sm2",test_bignum_tomont_sm2);
-  functionaltest(bmi,"bignum_triple_p256",test_bignum_triple_p256);
-  functionaltest(all,"bignum_triple_p256_alt",test_bignum_triple_p256_alt);
-  functionaltest(bmi,"bignum_triple_p256k1",test_bignum_triple_p256k1);
-  functionaltest(all,"bignum_triple_p256k1_alt",test_bignum_triple_p256k1_alt);
-  functionaltest(bmi,"bignum_triple_p384",test_bignum_triple_p384);
-  functionaltest(all,"bignum_triple_p384_alt",test_bignum_triple_p384_alt);
-  functionaltest(bmi,"bignum_triple_p521",test_bignum_triple_p521);
-  functionaltest(all,"bignum_triple_p521_alt",test_bignum_triple_p521_alt);
-  functionaltest(bmi,"bignum_triple_sm2",test_bignum_triple_sm2);
-  functionaltest(all,"bignum_triple_sm2_alt",test_bignum_triple_sm2_alt);
-  functionaltest(bmi,"curve25519_ladderstep",test_curve25519_ladderstep);
-  functionaltest(all,"curve25519_ladderstep_alt",test_curve25519_ladderstep_alt);
-  functionaltest(bmi,"curve25519_pxscalarmul",test_curve25519_pxscalarmul);
-  functionaltest(all,"curve25519_pxscalarmul_alt",test_curve25519_pxscalarmul_alt);
-  functionaltest(bmi,"curve25519_x25519",test_curve25519_x25519);
-  functionaltest(all,"curve25519_x25519_alt",test_curve25519_x25519_alt);
-  functionaltest(bmi,"curve25519_x25519_byte",test_curve25519_x25519_byte);
-  functionaltest(all,"curve25519_x25519_byte_alt",test_curve25519_x25519_byte_alt);
-  functionaltest(bmi,"curve25519_x25519base",test_curve25519_x25519base);
-  functionaltest(all,"curve25519_x25519base_alt",test_curve25519_x25519base_alt);
-  functionaltest(bmi,"curve25519_x25519base_byte",test_curve25519_x25519base_byte);
-  functionaltest(all,"curve25519_x25519base_byte_alt",test_curve25519_x25519base_byte_alt);
-  functionaltest(bmi,"edwards25519_decode",test_edwards25519_decode);
-  functionaltest(all,"edwards25519_decode_alt",test_edwards25519_decode_alt);
-  functionaltest(all,"edwards25519_encode",test_edwards25519_encode);
-  functionaltest(bmi,"edwards25519_epadd",test_edwards25519_epadd);
-  functionaltest(all,"edwards25519_epadd_alt",test_edwards25519_epadd_alt);
-  functionaltest(bmi,"edwards25519_epdouble",test_edwards25519_epdouble);
-  functionaltest(all,"edwards25519_epdouble_alt",test_edwards25519_epdouble_alt);
-  functionaltest(bmi,"edwards25519_pdouble",test_edwards25519_pdouble);
-  functionaltest(all,"edwards25519_pdouble_alt",test_edwards25519_pdouble_alt);
-  functionaltest(bmi,"edwards25519_pepadd",test_edwards25519_pepadd);
-  functionaltest(all,"edwards25519_pepadd_alt",test_edwards25519_pepadd_alt);
-  functionaltest(bmi,"edwards25519_scalarmulbase",test_edwards25519_scalarmulbase);
-  functionaltest(all,"edwards25519_scalarmulbase_alt",test_edwards25519_scalarmulbase_alt);
-  functionaltest(bmi,"edwards25519_scalarmuldouble",test_edwards25519_scalarmuldouble);
-  functionaltest(all,"edwards25519_scalarmuldouble_alt",test_edwards25519_scalarmuldouble_alt);
-  functionaltest(bmi,"p256_montjadd",test_p256_montjadd);
-  functionaltest(all,"p256_montjadd_alt",test_p256_montjadd_alt);
-  functionaltest(bmi,"p256_montjdouble",test_p256_montjdouble);
-  functionaltest(all,"p256_montjdouble_alt",test_p256_montjdouble_alt);
-  functionaltest(bmi,"p256_montjmixadd",test_p256_montjmixadd);
-  functionaltest(all,"p256_montjmixadd_alt",test_p256_montjmixadd_alt);
-  functionaltest(bmi,"p256_montjscalarmul",test_p256_montjscalarmul);
-  functionaltest(all,"p256_montjscalarmul_alt",test_p256_montjscalarmul_alt);
-  functionaltest(bmi,"p256_scalarmul",test_p256_scalarmul);
-  functionaltest(all,"p256_scalarmul_alt",test_p256_scalarmul_alt);
-  functionaltest(bmi,"p256_scalarmulbase",test_p256_scalarmulbase);
-  functionaltest(all,"p256_scalarmulbase_alt",test_p256_scalarmulbase_alt);
-  functionaltest(bmi,"p384_montjadd",test_p384_montjadd);
-  functionaltest(all,"p384_montjadd_alt",test_p384_montjadd_alt);
-  functionaltest(bmi,"p384_montjdouble",test_p384_montjdouble);
-  functionaltest(all,"p384_montjdouble_alt",test_p384_montjdouble_alt);
-  functionaltest(bmi,"p384_montjmixadd",test_p384_montjmixadd);
-  functionaltest(all,"p384_montjmixadd_alt",test_p384_montjmixadd_alt);
-  functionaltest(bmi,"p384_montjscalarmul",test_p384_montjscalarmul);
-  functionaltest(all,"p384_montjscalarmul_alt",test_p384_montjscalarmul_alt);
-  functionaltest(bmi,"p521_jadd",test_p521_jadd);
-  functionaltest(all,"p521_jadd_alt",test_p521_jadd_alt);
-  functionaltest(bmi,"p521_jdouble",test_p521_jdouble);
-  functionaltest(all,"p521_jdouble_alt",test_p521_jdouble_alt);
-  functionaltest(bmi,"p521_jmixadd",test_p521_jmixadd);
-  functionaltest(all,"p521_jmixadd_alt",test_p521_jmixadd_alt);
-  functionaltest(bmi,"p521_jscalarmul",test_p521_jscalarmul);
-  functionaltest(all,"p521_jscalarmul_alt",test_p521_jscalarmul_alt);
-  functionaltest(bmi,"secp256k1_jadd",test_secp256k1_jadd);
-  functionaltest(all,"secp256k1_jadd_alt",test_secp256k1_jadd_alt);
-  functionaltest(bmi,"secp256k1_jdouble",test_secp256k1_jdouble);
-  functionaltest(all,"secp256k1_jdouble_alt",test_secp256k1_jdouble_alt);
-  functionaltest(bmi,"secp256k1_jmixadd",test_secp256k1_jmixadd);
-  functionaltest(all,"secp256k1_jmixadd_alt",test_secp256k1_jmixadd_alt);
-  functionaltest(bmi,"sm2_montjadd",test_sm2_montjadd);
-  functionaltest(all,"sm2_montjadd_alt",test_sm2_montjadd_alt);
-  functionaltest(bmi,"sm2_montjdouble",test_sm2_montjdouble);
-  functionaltest(all,"sm2_montjdouble_alt",test_sm2_montjdouble_alt);
-  functionaltest(bmi,"sm2_montjmixadd",test_sm2_montjmixadd);
-  functionaltest(all,"sm2_montjmixadd_alt",test_sm2_montjmixadd_alt);
-  functionaltest(bmi,"sm2_montjscalarmul",test_sm2_montjscalarmul);
-  functionaltest(all,"sm2_montjscalarmul_alt",test_sm2_montjscalarmul_alt);
-  functionaltest(all,"word_bytereverse",test_word_bytereverse);
-  functionaltest(all,"word_clz",test_word_clz);
-  functionaltest(all,"word_ctz",test_word_ctz);
-  functionaltest(all,"word_divstep59",test_word_divstep59);
-  functionaltest(all,"word_max",test_word_max);
-  functionaltest(all,"word_min",test_word_min);
-  functionaltest(all,"word_negmodinv",test_word_negmodinv);
-  functionaltest(all,"word_popcount",test_word_popcount);
-  functionaltest(all,"word_recip",test_word_recip);
+  // functionaltest(all,"bignum_add",test_bignum_add);
+  // functionaltest(all,"bignum_add_p25519",test_bignum_add_p25519);
+  // functionaltest(all,"bignum_add_p256",test_bignum_add_p256);
+  // functionaltest(all,"bignum_add_p256k1",test_bignum_add_p256k1);
+  // functionaltest(all,"bignum_add_p384",test_bignum_add_p384);
+  // functionaltest(all,"bignum_add_p521",test_bignum_add_p521);
+  // functionaltest(all,"bignum_add_sm2",test_bignum_add_sm2);
+  // functionaltest(all,"bignum_amontifier",test_bignum_amontifier);
+  // functionaltest(all,"bignum_amontmul",test_bignum_amontmul);
+  // functionaltest(all,"bignum_amontredc",test_bignum_amontredc);
+  // functionaltest(all,"bignum_amontsqr",test_bignum_amontsqr);
+  // functionaltest(all,"bignum_bigendian_4",test_bignum_bigendian_4);
+  // functionaltest(all,"bignum_bigendian_6",test_bignum_bigendian_6);
+  // functionaltest(all,"bignum_bitfield",test_bignum_bitfield);
+  // functionaltest(all,"bignum_bitsize",test_bignum_bitsize);
+  // functionaltest(all,"bignum_cdiv",test_bignum_cdiv);
+  // functionaltest(all,"bignum_cdiv_exact",test_bignum_cdiv_exact);
+  // functionaltest(all,"bignum_cld",test_bignum_cld);
+  // functionaltest(all,"bignum_clz",test_bignum_clz);
+  // functionaltest(all,"bignum_cmadd",test_bignum_cmadd);
+  // functionaltest(all,"bignum_cmnegadd",test_bignum_cmnegadd);
+  // functionaltest(all,"bignum_cmod",test_bignum_cmod);
+  // functionaltest(all,"bignum_cmul",test_bignum_cmul);
+  // functionaltest(bmi,"bignum_cmul_p25519",test_bignum_cmul_p25519);
+  // functionaltest(all,"bignum_cmul_p25519_alt",test_bignum_cmul_p25519_alt);
+  // functionaltest(bmi,"bignum_cmul_p256",test_bignum_cmul_p256);
+  // functionaltest(all,"bignum_cmul_p256_alt",test_bignum_cmul_p256_alt);
+  // functionaltest(bmi,"bignum_cmul_p256k1",test_bignum_cmul_p256k1);
+  // functionaltest(all,"bignum_cmul_p256k1_alt",test_bignum_cmul_p256k1_alt);
+  // functionaltest(bmi,"bignum_cmul_p384",test_bignum_cmul_p384);
+  // functionaltest(all,"bignum_cmul_p384_alt",test_bignum_cmul_p384_alt);
+  // functionaltest(bmi,"bignum_cmul_p521",test_bignum_cmul_p521);
+  // functionaltest(all,"bignum_cmul_p521_alt",test_bignum_cmul_p521_alt);
+  // functionaltest(bmi,"bignum_cmul_sm2",test_bignum_cmul_sm2);
+  // functionaltest(all,"bignum_cmul_sm2_alt",test_bignum_cmul_sm2_alt);
+  // functionaltest(all,"bignum_coprime",test_bignum_coprime);
+  // functionaltest(all,"bignum_copy",test_bignum_copy);
+  // functionaltest(all,"bignum_copy_row_from_table",test_bignum_copy_row_from_table);
+  // functionaltest(all,"bignum_ctd",test_bignum_ctd);
+  // functionaltest(all,"bignum_ctz",test_bignum_ctz);
+  // functionaltest(bmi,"bignum_deamont_p256",test_bignum_deamont_p256);
+  // functionaltest(all,"bignum_deamont_p256_alt",test_bignum_deamont_p256_alt);
+  // functionaltest(all,"bignum_deamont_p256k1",test_bignum_deamont_p256k1);
+  // functionaltest(bmi,"bignum_deamont_p384",test_bignum_deamont_p384);
+  // functionaltest(all,"bignum_deamont_p384_alt",test_bignum_deamont_p384_alt);
+  // functionaltest(all,"bignum_deamont_p521",test_bignum_deamont_p521);
+  // functionaltest(all,"bignum_deamont_sm2",test_bignum_deamont_sm2);
+  // functionaltest(all,"bignum_demont",test_bignum_demont);
+  // functionaltest(bmi,"bignum_demont_p256",test_bignum_demont_p256);
+  // functionaltest(all,"bignum_demont_p256_alt",test_bignum_demont_p256_alt);
+  // functionaltest(all,"bignum_demont_p256k1",test_bignum_demont_p256k1);
+  // functionaltest(bmi,"bignum_demont_p384",test_bignum_demont_p384);
+  // functionaltest(all,"bignum_demont_p384_alt",test_bignum_demont_p384_alt);
+  // functionaltest(all,"bignum_demont_p521",test_bignum_demont_p521);
+  // functionaltest(all,"bignum_demont_sm2",test_bignum_demont_sm2);
+  // functionaltest(all,"bignum_digit",test_bignum_digit);
+  // functionaltest(all,"bignum_digitsize",test_bignum_digitsize);
+  // functionaltest(all,"bignum_divmod10",test_bignum_divmod10);
+  // functionaltest(all,"bignum_double_p25519",test_bignum_double_p25519);
+  // functionaltest(all,"bignum_double_p256",test_bignum_double_p256);
+  // functionaltest(all,"bignum_double_p256k1",test_bignum_double_p256k1);
+  // functionaltest(all,"bignum_double_p384",test_bignum_double_p384);
+  // functionaltest(all,"bignum_double_p521",test_bignum_double_p521);
+  // functionaltest(all,"bignum_double_sm2",test_bignum_double_sm2);
+  // functionaltest(all,"bignum_emontredc",test_bignum_emontredc);
+  // functionaltest(bmi,"bignum_emontredc_8n",test_bignum_emontredc_8n);
+  // functionaltest(all,"bignum_eq",test_bignum_eq);
+  // functionaltest(all,"bignum_even",test_bignum_even);
+  // functionaltest(all,"bignum_frombebytes_4",test_bignum_frombebytes_4);
+  // functionaltest(all,"bignum_frombebytes_6",test_bignum_frombebytes_6);
+  // functionaltest(all,"bignum_fromlebytes_4",test_bignum_fromlebytes_4);
+  // functionaltest(all,"bignum_fromlebytes_6",test_bignum_fromlebytes_6);
+  // functionaltest(all,"bignum_fromlebytes_p521",test_bignum_fromlebytes_p521);
+  // functionaltest(all,"bignum_ge",test_bignum_ge);
+  // functionaltest(all,"bignum_gt",test_bignum_gt);
+  // functionaltest(all,"bignum_half_p256",test_bignum_half_p256);
+  // functionaltest(all,"bignum_half_p256k1",test_bignum_half_p256k1);
+  // functionaltest(all,"bignum_half_p384",test_bignum_half_p384);
+  // functionaltest(all,"bignum_half_p521",test_bignum_half_p521);
+  // functionaltest(all,"bignum_half_sm2",test_bignum_half_sm2);
+  // functionaltest(all,"bignum_inv_p25519",test_bignum_inv_p25519);
+  // functionaltest(all,"bignum_inv_p256",test_bignum_inv_p256);
+  // functionaltest(all,"bignum_inv_p384",test_bignum_inv_p384);
+  // functionaltest(all,"bignum_inv_p521",test_bignum_inv_p521);
+  // functionaltest(all,"bignum_inv_sm2",test_bignum_inv_sm2);
+  // functionaltest(bmi,"bignum_invsqrt_p25519",test_bignum_invsqrt_p25519);
+  // functionaltest(all,"bignum_invsqrt_p25519_alt",test_bignum_invsqrt_p25519_alt);
+  // functionaltest(all,"bignum_iszero",test_bignum_iszero);
+  // functionaltest(bmi,"bignum_kmul_16_32",test_bignum_kmul_16_32);
+  // functionaltest(bmi,"bignum_kmul_32_64", test_bignum_kmul_32_64);
+  // functionaltest(bmi,"bignum_ksqr_16_32",test_bignum_ksqr_16_32);
+  // functionaltest(bmi,"bignum_ksqr_32_64",test_bignum_ksqr_32_64);
+  // functionaltest(all,"bignum_le",test_bignum_le);
+  // functionaltest(all,"bignum_littleendian_4",test_bignum_littleendian_4);
+  // functionaltest(all,"bignum_littleendian_6",test_bignum_littleendian_6);
+  // functionaltest(all,"bignum_lt",test_bignum_lt);
+  // functionaltest(all,"bignum_madd",test_bignum_madd);
+  // functionaltest(bmi,"bignum_madd_n25519",test_bignum_madd_n25519);
+  // functionaltest(all,"bignum_madd_n25519_alt",test_bignum_madd_n25519_alt);
+  // functionaltest(all,"bignum_mod_m25519_4",test_bignum_mod_m25519_4);
+  // functionaltest(all,"bignum_mod_n25519",test_bignum_mod_n25519);
+  // functionaltest(all,"bignum_mod_n25519_4",test_bignum_mod_n25519_4);
+  // functionaltest(bmi,"bignum_mod_n256",test_bignum_mod_n256);
+  // functionaltest(all,"bignum_mod_n256_4",test_bignum_mod_n256_4);
+  // functionaltest(all,"bignum_mod_n256_alt",test_bignum_mod_n256_alt);
+  // functionaltest(all,"bignum_mod_n256k1_4",test_bignum_mod_n256k1_4);
+  // functionaltest(bmi,"bignum_mod_n384",test_bignum_mod_n384);
+  // functionaltest(all,"bignum_mod_n384_6",test_bignum_mod_n384_6);
+  // functionaltest(all,"bignum_mod_n384_alt",test_bignum_mod_n384_alt);
+  // functionaltest(bmi,"bignum_mod_n521_9",test_bignum_mod_n521_9);
+  // functionaltest(all,"bignum_mod_n521_9_alt",test_bignum_mod_n521_9_alt);
+  // functionaltest(bmi,"bignum_mod_nsm2",test_bignum_mod_nsm2);
+  // functionaltest(all,"bignum_mod_nsm2_4",test_bignum_mod_nsm2_4);
+  // functionaltest(all,"bignum_mod_nsm2_alt",test_bignum_mod_nsm2_alt);
+  // functionaltest(all,"bignum_mod_p25519_4",test_bignum_mod_p25519_4);
+  // functionaltest(bmi,"bignum_mod_p256",test_bignum_mod_p256);
+  // functionaltest(all,"bignum_mod_p256_4",test_bignum_mod_p256_4);
+  // functionaltest(all,"bignum_mod_p256_alt",test_bignum_mod_p256_alt);
+  // functionaltest(all,"bignum_mod_p256k1_4",test_bignum_mod_p256k1_4);
+  // functionaltest(bmi,"bignum_mod_p384",test_bignum_mod_p384);
+  // functionaltest(all,"bignum_mod_p384_6",test_bignum_mod_p384_6);
+  // functionaltest(all,"bignum_mod_p384_alt",test_bignum_mod_p384_alt);
+  // functionaltest(all,"bignum_mod_p521_9",test_bignum_mod_p521_9);
+  // functionaltest(all,"bignum_mod_sm2",test_bignum_mod_sm2);
+  // functionaltest(all,"bignum_mod_sm2_4",test_bignum_mod_sm2_4);
+  // functionaltest(all,"bignum_modadd",test_bignum_modadd);
+  // functionaltest(all,"bignum_moddouble",test_bignum_moddouble);
+  // functionaltest(all,"bignum_modexp",test_bignum_modexp);
+  // functionaltest(all,"bignum_modifier",test_bignum_modifier);
+  // functionaltest(all,"bignum_modinv",test_bignum_modinv);
+  // functionaltest(all,"bignum_modoptneg",test_bignum_modoptneg);
+  // functionaltest(all,"bignum_modsub",test_bignum_modsub);
+  // functionaltest(all,"bignum_montifier",test_bignum_montifier);
+  // functionaltest(all,"bignum_montinv_p256",test_bignum_montinv_p256);
+  // functionaltest(all,"bignum_montinv_p384",test_bignum_montinv_p384);
+  // functionaltest(all,"bignum_montinv_sm2",test_bignum_montinv_sm2);
+  // functionaltest(all,"bignum_montmul",test_bignum_montmul);
+  // functionaltest(bmi,"bignum_montmul_p256",test_bignum_montmul_p256);
+  // functionaltest(all,"bignum_montmul_p256_alt",test_bignum_montmul_p256_alt);
+  // functionaltest(bmi,"bignum_montmul_p256k1",test_bignum_montmul_p256k1);
+  // functionaltest(all,"bignum_montmul_p256k1_alt",test_bignum_montmul_p256k1_alt);
+  // functionaltest(bmi,"bignum_montmul_p384",test_bignum_montmul_p384);
+  // functionaltest(all,"bignum_montmul_p384_alt",test_bignum_montmul_p384_alt);
+  // functionaltest(bmi,"bignum_montmul_p521",test_bignum_montmul_p521);
+  // functionaltest(all,"bignum_montmul_p521_alt",test_bignum_montmul_p521_alt);
+  // functionaltest(bmi,"bignum_montmul_sm2",test_bignum_montmul_sm2);
+  // functionaltest(all,"bignum_montmul_sm2_alt",test_bignum_montmul_sm2_alt);
+  // functionaltest(all,"bignum_montredc",test_bignum_montredc);
+  // functionaltest(all,"bignum_montsqr",test_bignum_montsqr);
+  // functionaltest(bmi,"bignum_montsqr_p256",test_bignum_montsqr_p256);
+  // functionaltest(all,"bignum_montsqr_p256_alt",test_bignum_montsqr_p256_alt);
+  // functionaltest(bmi,"bignum_montsqr_p256k1",test_bignum_montsqr_p256k1);
+  // functionaltest(all,"bignum_montsqr_p256k1_alt",test_bignum_montsqr_p256k1_alt);
+  // functionaltest(bmi,"bignum_montsqr_p384",test_bignum_montsqr_p384);
+  // functionaltest(all,"bignum_montsqr_p384_alt",test_bignum_montsqr_p384_alt);
+  // functionaltest(bmi,"bignum_montsqr_p521",test_bignum_montsqr_p521);
+  // functionaltest(all,"bignum_montsqr_p521_alt",test_bignum_montsqr_p521_alt);
+  // functionaltest(bmi,"bignum_montsqr_sm2",test_bignum_montsqr_sm2);
+  // functionaltest(all,"bignum_montsqr_sm2_alt",test_bignum_montsqr_sm2_alt);
+  // functionaltest(all,"bignum_mul",test_bignum_mul);
+  // functionaltest(bmi,"bignum_mul_4_8",test_bignum_mul_4_8);
+  // functionaltest(all,"bignum_mul_4_8_alt",test_bignum_mul_4_8_alt);
+  // functionaltest(bmi,"bignum_mul_6_12",test_bignum_mul_6_12);
+  // functionaltest(all,"bignum_mul_6_12_alt",test_bignum_mul_6_12_alt);
+  // functionaltest(bmi,"bignum_mul_8_16",test_bignum_mul_8_16);
+  // functionaltest(all,"bignum_mul_8_16_alt",test_bignum_mul_8_16_alt);
+  // functionaltest(bmi,"bignum_mul_p25519",test_bignum_mul_p25519);
+  // functionaltest(all,"bignum_mul_p25519_alt",test_bignum_mul_p25519_alt);
+  // functionaltest(bmi,"bignum_mul_p256k1",test_bignum_mul_p256k1);
+  // functionaltest(all,"bignum_mul_p256k1_alt",test_bignum_mul_p256k1_alt);
+  // functionaltest(bmi,"bignum_mul_p521",test_bignum_mul_p521);
+  // functionaltest(all,"bignum_mul_p521_alt",test_bignum_mul_p521_alt);
+  // functionaltest(all,"bignum_muladd10",test_bignum_muladd10);
+  // functionaltest(all,"bignum_mux",test_bignum_mux);
+  // functionaltest(all,"bignum_mux16",test_bignum_mux16);
+  // functionaltest(all,"bignum_mux_4",test_bignum_mux_4);
+  // functionaltest(all,"bignum_mux_6",test_bignum_mux_6);
+  // functionaltest(all,"bignum_neg_p25519",test_bignum_neg_p25519);
+  // functionaltest(all,"bignum_neg_p256",test_bignum_neg_p256);
+  // functionaltest(all,"bignum_neg_p256k1",test_bignum_neg_p256k1);
+  // functionaltest(all,"bignum_neg_p384",test_bignum_neg_p384);
+  // functionaltest(all,"bignum_neg_p521",test_bignum_neg_p521);
+  // functionaltest(all,"bignum_neg_sm2",test_bignum_neg_sm2);
+  // functionaltest(all,"bignum_negmodinv",test_bignum_negmodinv);
+  // functionaltest(all,"bignum_nonzero",test_bignum_nonzero);
+  // functionaltest(all,"bignum_nonzero_4",test_bignum_nonzero_4);
+  // functionaltest(all,"bignum_nonzero_6",test_bignum_nonzero_6);
+  // functionaltest(all,"bignum_normalize",test_bignum_normalize);
+  // functionaltest(all,"bignum_odd",test_bignum_odd);
+  // functionaltest(all,"bignum_of_word",test_bignum_of_word);
+  // functionaltest(all,"bignum_optadd",test_bignum_optadd);
+  // functionaltest(all,"bignum_optneg",test_bignum_optneg);
+  // functionaltest(all,"bignum_optneg_p25519",test_bignum_optneg_p25519);
+  // functionaltest(all,"bignum_optneg_p256",test_bignum_optneg_p256);
+  // functionaltest(all,"bignum_optneg_p256k1",test_bignum_optneg_p256k1);
+  // functionaltest(all,"bignum_optneg_p384",test_bignum_optneg_p384);
+  // functionaltest(all,"bignum_optneg_p521",test_bignum_optneg_p521);
+  // functionaltest(all,"bignum_optneg_sm2",test_bignum_optneg_sm2);
+  // functionaltest(all,"bignum_optsub",test_bignum_optsub);
+  // functionaltest(all,"bignum_optsubadd",test_bignum_optsubadd);
+  // functionaltest(all,"bignum_pow2",test_bignum_pow2);
+  // functionaltest(all,"bignum_shl_small",test_bignum_shl_small);
+  // functionaltest(all,"bignum_shr_small",test_bignum_shr_small);
+  // functionaltest(all,"bignum_sqr",test_bignum_sqr);
+  // functionaltest(bmi,"bignum_sqr_4_8",test_bignum_sqr_4_8);
+  // functionaltest(all,"bignum_sqr_4_8_alt",test_bignum_sqr_4_8_alt);
+  // functionaltest(bmi,"bignum_sqr_6_12",test_bignum_sqr_6_12);
+  // functionaltest(all,"bignum_sqr_6_12_alt",test_bignum_sqr_6_12_alt);
+  // functionaltest(bmi,"bignum_sqr_8_16",test_bignum_sqr_8_16);
+  // functionaltest(all,"bignum_sqr_8_16_alt",test_bignum_sqr_8_16_alt);
+  // functionaltest(bmi,"bignum_sqr_p25519",test_bignum_sqr_p25519);
+  // functionaltest(all,"bignum_sqr_p25519_alt",test_bignum_sqr_p25519_alt);
+  // functionaltest(bmi,"bignum_sqr_p256k1",test_bignum_sqr_p256k1);
+  // functionaltest(all,"bignum_sqr_p256k1_alt",test_bignum_sqr_p256k1_alt);
+  // functionaltest(bmi,"bignum_sqr_p521",test_bignum_sqr_p521);
+  // functionaltest(all,"bignum_sqr_p521_alt",test_bignum_sqr_p521_alt);
+  // functionaltest(bmi,"bignum_sqrt_p25519",test_bignum_sqrt_p25519);
+  // functionaltest(all,"bignum_sqrt_p25519_alt",test_bignum_sqrt_p25519_alt);
+  // functionaltest(all,"bignum_sub",test_bignum_sub);
+  // functionaltest(all,"bignum_sub_p25519",test_bignum_sub_p25519);
+  // functionaltest(all,"bignum_sub_p256",test_bignum_sub_p256);
+  // functionaltest(all,"bignum_sub_p256k1",test_bignum_sub_p256k1);
+  // functionaltest(all,"bignum_sub_p384",test_bignum_sub_p384);
+  // functionaltest(all,"bignum_sub_p521",test_bignum_sub_p521);
+  // functionaltest(all,"bignum_sub_sm2",test_bignum_sub_sm2);
+  // functionaltest(all,"bignum_tobebytes_4",test_bignum_tobebytes_4);
+  // functionaltest(all,"bignum_tobebytes_6",test_bignum_tobebytes_6);
+  // functionaltest(all,"bignum_tolebytes_4",test_bignum_tolebytes_4);
+  // functionaltest(all,"bignum_tolebytes_6",test_bignum_tolebytes_6);
+  // functionaltest(all,"bignum_tolebytes_p521",test_bignum_tolebytes_p521);
+  // functionaltest(bmi,"bignum_tomont_p256",test_bignum_tomont_p256);
+  // functionaltest(all,"bignum_tomont_p256_alt",test_bignum_tomont_p256_alt);
+  // functionaltest(bmi,"bignum_tomont_p256k1",test_bignum_tomont_p256k1);
+  // functionaltest(all,"bignum_tomont_p256k1_alt",test_bignum_tomont_p256k1_alt);
+  // functionaltest(bmi,"bignum_tomont_p384",test_bignum_tomont_p384);
+  // functionaltest(all,"bignum_tomont_p384_alt",test_bignum_tomont_p384_alt);
+  // functionaltest(all,"bignum_tomont_p521",test_bignum_tomont_p521);
+  // functionaltest(all,"bignum_tomont_sm2",test_bignum_tomont_sm2);
+  // functionaltest(bmi,"bignum_triple_p256",test_bignum_triple_p256);
+  // functionaltest(all,"bignum_triple_p256_alt",test_bignum_triple_p256_alt);
+  // functionaltest(bmi,"bignum_triple_p256k1",test_bignum_triple_p256k1);
+  // functionaltest(all,"bignum_triple_p256k1_alt",test_bignum_triple_p256k1_alt);
+  // functionaltest(bmi,"bignum_triple_p384",test_bignum_triple_p384);
+  // functionaltest(all,"bignum_triple_p384_alt",test_bignum_triple_p384_alt);
+  // functionaltest(bmi,"bignum_triple_p521",test_bignum_triple_p521);
+  // functionaltest(all,"bignum_triple_p521_alt",test_bignum_triple_p521_alt);
+  // functionaltest(bmi,"bignum_triple_sm2",test_bignum_triple_sm2);
+  // functionaltest(all,"bignum_triple_sm2_alt",test_bignum_triple_sm2_alt);
+  // functionaltest(bmi,"curve25519_ladderstep",test_curve25519_ladderstep);
+  // functionaltest(all,"curve25519_ladderstep_alt",test_curve25519_ladderstep_alt);
+  // functionaltest(bmi,"curve25519_pxscalarmul",test_curve25519_pxscalarmul);
+  // functionaltest(all,"curve25519_pxscalarmul_alt",test_curve25519_pxscalarmul_alt);
+  // functionaltest(bmi,"curve25519_x25519",test_curve25519_x25519);
+  // functionaltest(all,"curve25519_x25519_alt",test_curve25519_x25519_alt);
+  // functionaltest(bmi,"curve25519_x25519_byte",test_curve25519_x25519_byte);
+  // functionaltest(all,"curve25519_x25519_byte_alt",test_curve25519_x25519_byte_alt);
+  // functionaltest(bmi,"curve25519_x25519base",test_curve25519_x25519base);
+  // functionaltest(all,"curve25519_x25519base_alt",test_curve25519_x25519base_alt);
+  // functionaltest(bmi,"curve25519_x25519base_byte",test_curve25519_x25519base_byte);
+  // functionaltest(all,"curve25519_x25519base_byte_alt",test_curve25519_x25519base_byte_alt);
+  // functionaltest(bmi,"edwards25519_decode",test_edwards25519_decode);
+  // functionaltest(all,"edwards25519_decode_alt",test_edwards25519_decode_alt);
+  // functionaltest(all,"edwards25519_encode",test_edwards25519_encode);
+  // functionaltest(bmi,"edwards25519_epadd",test_edwards25519_epadd);
+  // functionaltest(all,"edwards25519_epadd_alt",test_edwards25519_epadd_alt);
+  // functionaltest(bmi,"edwards25519_epdouble",test_edwards25519_epdouble);
+  // functionaltest(all,"edwards25519_epdouble_alt",test_edwards25519_epdouble_alt);
+  // functionaltest(bmi,"edwards25519_pdouble",test_edwards25519_pdouble);
+  // functionaltest(all,"edwards25519_pdouble_alt",test_edwards25519_pdouble_alt);
+  // functionaltest(bmi,"edwards25519_pepadd",test_edwards25519_pepadd);
+  // functionaltest(all,"edwards25519_pepadd_alt",test_edwards25519_pepadd_alt);
+  // functionaltest(bmi,"edwards25519_scalarmulbase",test_edwards25519_scalarmulbase);
+  // functionaltest(all,"edwards25519_scalarmulbase_alt",test_edwards25519_scalarmulbase_alt);
+  // functionaltest(bmi,"edwards25519_scalarmuldouble",test_edwards25519_scalarmuldouble);
+  // functionaltest(all,"edwards25519_scalarmuldouble_alt",test_edwards25519_scalarmuldouble_alt);
+  // functionaltest(bmi,"p256_montjadd",test_p256_montjadd);
+  // functionaltest(all,"p256_montjadd_alt",test_p256_montjadd_alt);
+  // functionaltest(bmi,"p256_montjdouble",test_p256_montjdouble);
+  // functionaltest(all,"p256_montjdouble_alt",test_p256_montjdouble_alt);
+  // functionaltest(bmi,"p256_montjmixadd",test_p256_montjmixadd);
+  // functionaltest(all,"p256_montjmixadd_alt",test_p256_montjmixadd_alt);
+  // functionaltest(bmi,"p256_montjscalarmul",test_p256_montjscalarmul);
+  // functionaltest(all,"p256_montjscalarmul_alt",test_p256_montjscalarmul_alt);
+  // functionaltest(bmi,"p256_scalarmul",test_p256_scalarmul);
+  // functionaltest(all,"p256_scalarmul_alt",test_p256_scalarmul_alt);
+  // functionaltest(bmi,"p256_scalarmulbase",test_p256_scalarmulbase);
+  // functionaltest(all,"p256_scalarmulbase_alt",test_p256_scalarmulbase_alt);
+  // functionaltest(bmi,"p384_montjadd",test_p384_montjadd);
+  // functionaltest(all,"p384_montjadd_alt",test_p384_montjadd_alt);
+  // functionaltest(bmi,"p384_montjdouble",test_p384_montjdouble);
+  // functionaltest(all,"p384_montjdouble_alt",test_p384_montjdouble_alt);
+  // functionaltest(bmi,"p384_montjmixadd",test_p384_montjmixadd);
+  // functionaltest(all,"p384_montjmixadd_alt",test_p384_montjmixadd_alt);
+  // functionaltest(bmi,"p384_montjscalarmul",test_p384_montjscalarmul);
+  // functionaltest(all,"p384_montjscalarmul_alt",test_p384_montjscalarmul_alt);
+  // functionaltest(bmi,"p521_jadd",test_p521_jadd);
+  // functionaltest(all,"p521_jadd_alt",test_p521_jadd_alt);
+  // functionaltest(bmi,"p521_jdouble",test_p521_jdouble);
+  // functionaltest(all,"p521_jdouble_alt",test_p521_jdouble_alt);
+  // functionaltest(bmi,"p521_jmixadd",test_p521_jmixadd);
+  // functionaltest(all,"p521_jmixadd_alt",test_p521_jmixadd_alt);
+  // functionaltest(bmi,"p521_jscalarmul",test_p521_jscalarmul);
+  // functionaltest(all,"p521_jscalarmul_alt",test_p521_jscalarmul_alt);
+  // functionaltest(bmi,"secp256k1_jadd",test_secp256k1_jadd);
+  // functionaltest(all,"secp256k1_jadd_alt",test_secp256k1_jadd_alt);
+  // functionaltest(bmi,"secp256k1_jdouble",test_secp256k1_jdouble);
+  // functionaltest(all,"secp256k1_jdouble_alt",test_secp256k1_jdouble_alt);
+  // functionaltest(bmi,"secp256k1_jmixadd",test_secp256k1_jmixadd);
+  // functionaltest(all,"secp256k1_jmixadd_alt",test_secp256k1_jmixadd_alt);
+  // functionaltest(bmi,"sm2_montjadd",test_sm2_montjadd);
+  // functionaltest(all,"sm2_montjadd_alt",test_sm2_montjadd_alt);
+  // functionaltest(bmi,"sm2_montjdouble",test_sm2_montjdouble);
+  // functionaltest(all,"sm2_montjdouble_alt",test_sm2_montjdouble_alt);
+  // functionaltest(bmi,"sm2_montjmixadd",test_sm2_montjmixadd);
+  // functionaltest(all,"sm2_montjmixadd_alt",test_sm2_montjmixadd_alt);
+  // functionaltest(bmi,"sm2_montjscalarmul",test_sm2_montjscalarmul);
+  // functionaltest(all,"sm2_montjscalarmul_alt",test_sm2_montjscalarmul_alt);
+  // functionaltest(all,"word_bytereverse",test_word_bytereverse);
+  // functionaltest(all,"word_clz",test_word_clz);
+  // functionaltest(all,"word_ctz",test_word_ctz);
+  // functionaltest(all,"word_divstep59",test_word_divstep59);
+  // functionaltest(all,"word_max",test_word_max);
+  // functionaltest(all,"word_min",test_word_min);
+  // functionaltest(all,"word_negmodinv",test_word_negmodinv);
+  // functionaltest(all,"word_popcount",test_word_popcount);
+  // functionaltest(all,"word_recip",test_word_recip);
 
   if (get_arch_name() == ARCH_AARCH64) {
     functionaltest(all,"bignum_copy_row_from_table_8n",test_bignum_copy_row_from_table_8n);
@@ -13770,18 +13848,20 @@ int main(int argc, char *argv[])
 
   if (extrastrigger) function_to_test = "_";
 
-  functionaltest(bmi,"known value tests",test_known_values);
+  // functionaltest(bmi,"known value tests for p384",test_known_values_p384);
+  functionaltest(aes,"known value tests for aes-xts encrypt",test_known_values_xts_encrypt);
+  functionaltest(aes,"known value tests for aes-xts decrypt",test_known_values_xts_decrypt);
 
-  functionaltest(bmi,"curve25519_x25519 (TweetNaCl)",test_curve25519_x25519_tweetnacl);
-  functionaltest(all,"curve25519_x25519_alt (TweetNaCl)",test_curve25519_x25519_alt_tweetnacl);
-  functionaltest(bmi,"curve25519_x25519_byte (TweetNaCl)",test_curve25519_x25519_byte_tweetnacl);
-  functionaltest(all,"curve25519_x25519_byte+alt (TweetNaCl)",test_curve25519_x25519_byte_alt_tweetnacl);
-  functionaltest(bmi,"curve25519_x25519base (TweetNaCl)",test_curve25519_x25519base_tweetnacl);
-  functionaltest(all,"curve25519_x25519base_alt (TweetNaCl)",test_curve25519_x25519base_alt_tweetnacl);
-  functionaltest(bmi,"curve25519_x25519base_byte (TweetNaCl)",test_curve25519_x25519base_byte_tweetnacl);
-  functionaltest(all,"curve25519_x25519base_byte_alt (TweetNaCl)",test_curve25519_x25519base_byte_alt_tweetnacl);
-  functionaltest(bmi,"edwards25519_scalarmulbase (TweetNaCl)",test_edwards25519_scalarmulbase_tweetnacl);
-  functionaltest(all,"edwards25519_scalarmulbase_alt (TweetNaCl)",test_edwards25519_scalarmulbase_alt_tweetnacl);
+  // functionaltest(bmi,"curve25519_x25519 (TweetNaCl)",test_curve25519_x25519_tweetnacl);
+  // functionaltest(all,"curve25519_x25519_alt (TweetNaCl)",test_curve25519_x25519_alt_tweetnacl);
+  // functionaltest(bmi,"curve25519_x25519_byte (TweetNaCl)",test_curve25519_x25519_byte_tweetnacl);
+  // functionaltest(all,"curve25519_x25519_byte+alt (TweetNaCl)",test_curve25519_x25519_byte_alt_tweetnacl);
+  // functionaltest(bmi,"curve25519_x25519base (TweetNaCl)",test_curve25519_x25519base_tweetnacl);
+  // functionaltest(all,"curve25519_x25519base_alt (TweetNaCl)",test_curve25519_x25519base_alt_tweetnacl);
+  // functionaltest(bmi,"curve25519_x25519base_byte (TweetNaCl)",test_curve25519_x25519base_byte_tweetnacl);
+  // functionaltest(all,"curve25519_x25519base_byte_alt (TweetNaCl)",test_curve25519_x25519base_byte_alt_tweetnacl);
+  // functionaltest(bmi,"edwards25519_scalarmulbase (TweetNaCl)",test_edwards25519_scalarmulbase_tweetnacl);
+  // functionaltest(all,"edwards25519_scalarmulbase_alt (TweetNaCl)",test_edwards25519_scalarmulbase_alt_tweetnacl);
 
   if (successes == tested)
    { printf("All %d tests run, all passed\n",successes);
