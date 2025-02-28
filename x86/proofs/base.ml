@@ -6,7 +6,7 @@
 (* ========================================================================= *)
 (* Load basic background needed for the x86 bignum proofs.                   *)
 (* ========================================================================= *)
-
+use_file_raise_failure := true;;
 loads "update_database.ml";;
 prioritize_num();;
 
@@ -35,6 +35,19 @@ loadt "common/records.ml";;
 loadt "common/relational.ml";;
 loadt "common/interval.ml";;
 loadt "common/elf.ml";;
+loadt "common/aes.ml";;
+
+(* ------------------------------------------------------------------------- *)
+(* Additional Cryptographic AES intrinsics                                   *)
+(* ------------------------------------------------------------------------- *)
+
+loadt "x86/proofs/aes.ml";;
+extra_word_CONV := [AESENC_REDUCE_CONV]
+                    @ (!extra_word_CONV);;
+
+(* ------------------------------------------------------------------------- *)
+(* The main x86_64 model.                                                       *)
+(* ------------------------------------------------------------------------- *)
 
 loadt "x86/proofs/instruction.ml";;
 loadt "x86/proofs/decode.ml";;

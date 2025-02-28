@@ -237,6 +237,7 @@ let instruction_INDUCTION,instruction_RECURSION = define_type
    | ADCX operand operand
    | ADD operand operand
    | ADOX operand operand
+   | AESENC operand operand
    | AND operand operand
    | BSF operand operand
    | BSR operand operand

@@ -185,7 +185,7 @@ let mmreg = new_definition
 
 let simd_of_RM = define
  `(!reg. simd_of_RM sz (RM_reg reg) =
-         Simdregister(Simdreg (word_zx reg) sz)) /\
+         %_%(Simdreg (word_zx reg) sz)) /\
   (!ea. simd_of_RM sz (RM_mem ea) = Memop (simd_to_wordsize sz) ea)`;;
 
 let read_ModRM_operand = new_definition
@@ -295,6 +295,10 @@ let decode_aux = new_definition `!pfxs rex l. decode_aux pfxs rex l =
         | (T, Rep0) -> SOME (ADCX reg rm,l)
         | (F, RepZ) -> SOME (ADOX reg rm,l)
         | _ -> NONE)
+      | [0xdc:8] ->
+        let sz = Lower_128 in
+        read_ModRM rex l >>= \((reg,rm),l).
+        SOME (AESENC (mmreg reg sz) (simd_of_RM sz rm), l)
       | _ -> NONE)
     | [0b11001:5; r:3] -> if has_pfxs pfxs then NONE else
       let sz = op_size_W rex T pfxs in

@@ -502,6 +502,13 @@ let x86_ADOX = new_definition
         (dest := (z:N word) ,,
          OF := ~(val x + val y + c = val z)) s`;;
 
+(* AESENC does not modify DEST[MAXVL-1:128] *)
+let x86_AESENC = new_definition
+  `x86_AESENC dest src s =
+     let state = read dest s and roundkey = read src s in
+     let new_state = aesenc state roundkey in
+     (dest := new_state) s`;;
+
 let x86_AND = new_definition
  `x86_AND dest src s =
         let x = read dest s and y = read src s in
@@ -1387,6 +1394,9 @@ let x86_execute = define
         (match operand_size dest with
            64 -> x86_ADOX (OPERAND64 dest s) (OPERAND64 src s)
          | 32 -> x86_ADOX (OPERAND32 dest s) (OPERAND32 src s)) s
+    | AESENC dest src ->
+        (match operand_size dest with
+          128 -> x86_AESENC (OPERAND128 dest s) (OPERAND128 src s)) s
     | AND dest src ->
         (match operand_size dest with
            64 -> x86_AND (OPERAND64 dest s) (OPERAND64 src s)
@@ -2386,7 +2396,7 @@ let x86_RET_POP_RIP = prove
 let X86_OPERATION_CLAUSES =
   map (CONV_RULE(TOP_DEPTH_CONV let_CONV) o SPEC_ALL)
    [x86_ADC_ALT; x86_ADCX_ALT; x86_ADOX_ALT;
-    x86_ADD_ALT; x86_AND; x86_BSF; x86_BSR; x86_BSWAP;
+    x86_ADD_ALT; x86_AESENC; x86_AND; x86_BSF; x86_BSR; x86_BSWAP;
     x86_BT; x86_BTC_ALT; x86_BTR_ALT; x86_BTS_ALT;
     x86_CALL_ALT; x86_CLC; x86_CMC; x86_CMOV; x86_CMP_ALT; x86_DEC;
     x86_DIV2; x86_IMUL; x86_IMUL2; x86_IMUL3; x86_INC; x86_LEA; x86_LZCNT;
