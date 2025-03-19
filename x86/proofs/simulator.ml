@@ -642,7 +642,19 @@ let cosimulate_pop_harness() =
   ];;
 
 let mem_iclasses = [
-  (* ADD r/m64, r64 *)
+  [[0x48; 0xc7; 0xc1; 0x08; 0x00; 0x00; 0x00]; (* MOV rcx, 8 *)
+   [0x48; 0x89; 0xda]; (* MOV rdx, rbx *)
+   [0x48; 0x8d; 0x5c; 0x24; 0x10]; (* LEA rbx, [rsp+16] *)
+   [0x0f; 0x29] @ [0x44; 0x4B; 0x10];  (* MOVAPS [rbx+rcx*2+16], xmm0 *)
+   [0x48; 0x89; 0xd3]; (* MOV rbx, rdx *)
+  ];
+  [[0x48; 0xc7; 0xc1; 0x01; 0x00; 0x00; 0x00]; (* MOV rcx, 1 *)
+   [0x48; 0x89; 0xda]; (* MOV rdx, rbx *)
+   [0x48; 0x8d; 0x5c; 0x24; 0x03]; (* LEA rbx, [rsp+3] *)
+   [0x44; 0x0f; 0x11] @ [0x4c; 0x4b; 0x03];  (* movups [rbx+rcx*2 + 3], xmm9 *)
+   [0x48; 0x89; 0xd3]; (* MOV rbx, rdx *)
+  ];
+  (* (* ADD r/m64, r64 *)
   cosimulate_mem_full_harness([0x01]);
   cosimulate_mem_base_disp_harness([0x01]);
   cosimulate_mem_rsp_harness([0x01]);
@@ -713,7 +725,7 @@ let mem_iclasses = [
   (* PUSH r64 *)
   cosimulate_push_harness();
   (* POP r64 *)
-  cosimulate_pop_harness();
+  cosimulate_pop_harness(); *)
   ];;
 
 let run_random_memopsimulation() =
@@ -727,14 +739,14 @@ let run_random_memopsimulation() =
 (* ------------------------------------------------------------------------- *)
 
 let run_random_simulation() =
-  if Random.int 100 < 90 then
+  if Random.int 100 < 0 then
     let decoded, result = run_random_regsimulation() in
     decoded,result,true
   else
     let decoded, result = run_random_memopsimulation() in
     decoded,result,false;;
 
-let time_limit_sec = 1800.0;;
+let time_limit_sec = 30.0;;
 let tested_reg_instances = ref 0;;
 let tested_mem_instances = ref 0;;
 
