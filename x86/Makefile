@@ -249,6 +249,7 @@ BIGNUM_OBJ = curve25519/bignum_add_p25519.o \
              generic/word_negmodinv.o \
              generic/word_popcount.o \
              generic/word_recip.o \
+             mlkem/mlkem_keccak_f1600.o \
              p256/bignum_add_p256.o \
              p256/bignum_bigendian_4.o \
              p256/bignum_cmul_p256.o \
@@ -496,6 +497,7 @@ p521/p521_jscalarmul.native: p521/bignum_mod_n521_9.native p521/p521_jadd.native
 p521/p521_jscalarmul_alt.native: p521/bignum_mod_n521_9.native
 sm2/sm2_montjscalarmul.native: sm2/sm2_montjadd.native sm2/sm2_montjdouble.native
 sm2/sm2_montjscalarmul_alt.native: sm2/sm2_montjadd_alt.native sm2/sm2_montjdouble_alt.native
+mlkem/mlkem_keccak_f1600.native: mlkem/mlkem_keccak_f1600.native
 
 # Tutorial
 

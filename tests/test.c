@@ -18,6 +18,7 @@
 #include <alloca.h>
 #include <string.h>
 
+#define TEST_ONLY_KECCAK
 // Prototypes for the assembler implementations
 
 #include "../include/s2n-bignum.h"
@@ -11214,9 +11215,6 @@ int test_mlkem_intt(void)
 
 int test_mlkem_keccak_f1600(void)
 {
-#ifdef __x86_64__
-  return 1;
-#else
   uint64_t t, i;
   uint64_t a[25], b[25], c[25];
   printf("Testing mlkem_keccak_f1600 with %d cases\n",tests);
@@ -11245,7 +11243,6 @@ int test_mlkem_keccak_f1600(void)
    }
   printf("All OK\n");
   return 0;
-#endif
 }
 
 int test_mlkem_keccak_f1600_alt(void)
@@ -14109,7 +14106,7 @@ int main(int argc, char *argv[])
    }
 
   if (tests == 0) tests = TESTS;
-
+#ifndef TEST_ONLY_KECCAK
   functionaltest(all,"bignum_add",test_bignum_add);
   functionaltest(all,"bignum_add_p25519",test_bignum_add_p25519);
   functionaltest(all,"bignum_add_p256",test_bignum_add_p256);
@@ -14436,14 +14433,17 @@ int main(int argc, char *argv[])
   functionaltest(all,"word_negmodinv",test_word_negmodinv);
   functionaltest(all,"word_popcount",test_word_popcount);
   functionaltest(all,"word_recip",test_word_recip);
+#endif
+    functionaltest(all,"mlkem_keccak_f1600",test_mlkem_keccak_f1600);
 
+#ifndef TEST_ONLY_KECCAK
   if (get_arch_name() == ARCH_AARCH64) {
     functionaltest(all,"bignum_copy_row_from_table_8n",test_bignum_copy_row_from_table_8n);
     functionaltest(all,"bignum_copy_row_from_table_16",test_bignum_copy_row_from_table_16);
     functionaltest(all,"bignum_copy_row_from_table_32",test_bignum_copy_row_from_table_32);
     functionaltest(all,"bignum_emontredc_8n_cdiff",test_bignum_emontredc_8n_cdiff);
     functionaltest(arm,"mlkem_intt",test_mlkem_intt);
-    functionaltest(arm,"mlkem_keccak_f1600",test_mlkem_keccak_f1600);
+    // functionaltest(arm,"mlkem_keccak_f1600",test_mlkem_keccak_f1600);
     functionaltest(sha3,"mlkem_keccak_f1600_alt",test_mlkem_keccak_f1600_alt);
     functionaltest(sha3,"mlkem_keccak2_f1600",test_mlkem_keccak2_f1600);
     functionaltest(sha3,"mlkem_keccak2_f1600_alt",test_mlkem_keccak2_f1600_alt);
@@ -14468,7 +14468,7 @@ int main(int argc, char *argv[])
   functionaltest(all,"curve25519_x25519base_byte_alt (TweetNaCl)",test_curve25519_x25519base_byte_alt_tweetnacl);
   functionaltest(bmi,"edwards25519_scalarmulbase (TweetNaCl)",test_edwards25519_scalarmulbase_tweetnacl);
   functionaltest(all,"edwards25519_scalarmulbase_alt (TweetNaCl)",test_edwards25519_scalarmulbase_alt_tweetnacl);
-
+#endif
   if (successes == tested)
    { printf("All %d tests run, all passed\n",successes);
      return 0;
