@@ -18,6 +18,7 @@
 // Controls whether an explanatory header goes on the output
 
 #define EXPLANATION 1
+#define TEST_ONLY_KECCAK
 
 // Parameters controlling the number of repetitions. The total number of
 // repetitions per function is OUTER_REPS * 65 * INNER_REPS, with the 65
@@ -817,6 +818,7 @@ void call_sm2_montjmixadd(void) repeat(sm2_montjmixadd(b1,b2,b3))
 void call_sm2_montjmixadd_alt(void) repeat(sm2_montjmixadd_alt(b1,b2,b3))
 void call_sm2_montjscalarmul(void) repeatfewer(10,sm2_montjscalarmul(b1,b2,b3))
 void call_sm2_montjscalarmul_alt(void) repeatfewer(10,sm2_montjscalarmul_alt(b1,b2,b3))
+void call_mlkem_keccak_f1600(void) repeat(mlkem_keccak_f1600(b0,b1))
 
 #ifdef __x86_64__
 
@@ -827,7 +829,7 @@ void call_bignum_copy_row_from_table_32__32(void) {}
 
 void call_bignum_emontredc_8n_cdiff__32(void) {}
 void call_mlkem_intt(void) {}
-void call_mlkem_keccak_f1600(void) {}
+// void call_mlkem_keccak_f1600(void) {}
 void call_mlkem_keccak_f1600_alt(void) {}
 void call_mlkem_keccak2_f1600(void) {}
 void call_mlkem_keccak2_f1600_alt(void) {}
@@ -851,7 +853,7 @@ void call_bignum_copy_row_from_table_32__32(void) \
 void call_bignum_emontredc_8n_cdiff__32(void) repeat(bignum_emontredc_8n_cdiff(32,b0,b1,b2[0],b3))
 
 void call_mlkem_intt(void) repeat(mlkem_intt((int16_t*)b0,(int16_t*)b1,(int16_t*)b2))
-void call_mlkem_keccak_f1600(void) repeat(mlkem_keccak_f1600(b0,b1))
+// void call_mlkem_keccak_f1600(void) repeat(mlkem_keccak_f1600(b0,b1))
 void call_mlkem_keccak_f1600_alt(void) repeat(mlkem_keccak_f1600_alt(b0,b1))
 void call_mlkem_keccak2_f1600(void) repeat(mlkem_keccak2_f1600(b0,b1))
 void call_mlkem_keccak2_f1600_alt(void) repeat(mlkem_keccak2_f1600_alt(b0,b1))
@@ -917,7 +919,7 @@ int main(int argc, char *argv[])
   for (i = 0; i < 1000000; ++i) bignum_montmul(12,b0,b1,b2,b3);
 
   // Now the main tests
-
+#ifndef TEST_ONLY_KECCAK
   timingtest(all,"bignum_add (4x4->4)",call_bignum_add__4_4);
   timingtest(all,"bignum_add (6x6->6)",call_bignum_add__6_6);
   timingtest(all,"bignum_add (32x32->32)",call_bignum_add__32_32);
@@ -1243,7 +1245,11 @@ int main(int argc, char *argv[])
   timingtest(bmi,"edwards25519_scalarmuldouble",call_edwards25519_scalarmuldouble);
   timingtest(all,"edwards25519_scalarmuldouble_alt",call_edwards25519_scalarmuldouble_alt);
   timingtest(arm,"mlkem_intt",call_mlkem_intt);
-  timingtest(arm,"mlkem_keccak_f1600",call_mlkem_keccak_f1600);
+#endif
+
+  timingtest(all,"mlkem_keccak_f1600",call_mlkem_keccak_f1600);
+
+#ifndef TEST_ONLY_KECCAK
   timingtest(sha3,"mlkem_keccak_f1600_alt",call_mlkem_keccak_f1600_alt);
   timingtest(sha3,"mlkem_keccak2_f1600",call_mlkem_keccak2_f1600);
   timingtest(sha3,"mlkem_keccak2_f1600_alt",call_mlkem_keccak2_f1600_alt);
@@ -1307,6 +1313,7 @@ int main(int argc, char *argv[])
   timingtest(all,"word_negmodinv",call_word_negmodinv);
   timingtest(all,"word_popcount",call_word_popcount);
   timingtest(all,"word_recip",call_word_recip);
+#endif
 
   // Summarize performance in arithmetic and geometric means
 
