@@ -979,6 +979,46 @@ let x86_OR = new_definition
          OF := F ,,
          UNDEFINED_VALUES[AF]) s`;;
 
+let x86_PADDD = new_definition
+  `x86_PADDD dest src s =
+    let x = read dest s in
+    let y = read src s in
+    let r0 = word_add
+      ((word_subword:(128 word->num#num->32 word)) x (0,32))
+      ((word_subword:(128 word->num#num->32 word)) y (0,32)) in
+    let r1 = word_add
+      ((word_subword:(128 word->num#num->32 word)) x (32,32))
+      ((word_subword:(128 word->num#num->32 word)) y (32,32)) in
+    let r2 = word_add
+      ((word_subword:(128 word->num#num->32 word)) x (64,32))
+      ((word_subword:(128 word->num#num->32 word)) y (64,32)) in
+    let r3 = word_add
+      ((word_subword:(128 word->num#num->32 word)) x (96,32))
+      ((word_subword:(128 word->num#num->32 word)) y (96,32)) in
+    let res = (word_join:(32 word->96 word->128 word)) r3
+      ((word_join:(32 word->64 word->96 word)) r2
+        ((word_join:(32 word->32 word->64 word)) r1 r0)) in
+    (dest := res) s`;;
+
+let x86_PADDQ = new_definition
+  `x86_PADDQ dest src s =
+    let x = read dest s in
+    let y = read src s in
+    let r0 = word_add
+      ((word_subword:(128 word->num#num->64 word)) x (0,64))
+      ((word_subword:(128 word->num#num->64 word)) y (0,64)) in
+    let r1 = word_add
+      ((word_subword:(128 word->num#num->64 word)) x (64,64))
+      ((word_subword:(128 word->num#num->64 word)) y (64,64)) in
+    let res = (word_join:(64 word->64 word->128 word)) r1 r0 in
+    (dest := res) s`;;
+
+let x86_PAND = new_definition
+  `x86_PAND dest src s =
+    let x = read dest s in
+    let y = read src s in
+    (dest := word_and x y) s`;;
+
 (*** Push and pop are a bit odd in several ways. First of all, there is  ***)
 (*** an implicit memory operand so this doesn't have quite the same      ***)
 (*** "shallowness": we refer to the memory component explicitly. And we  ***)
@@ -1008,6 +1048,47 @@ let x86_PUSH = new_definition
         let p' = word_sub p (word n) in
         (RSP := p' ,,
          memory :> bytes(p',n) := x) s`;;
+
+let x86_PSHUFD = new_definition
+ `x86_PSHUFD dest src imm8 s =
+    let src = read src s in
+    let od = read imm8 s in
+    let d0 = (word_subword:(128 word->num#num->32 word)) src
+      ((val ((word_subword:(byte->num#num->2 word)) od (0,2)))*32,32) in
+    let d1 = (word_subword:(128 word->num#num->32 word)) src
+      ((val ((word_subword:(byte->num#num->2 word)) od (2,2)))*32,32) in
+    let d2 = (word_subword:(128 word->num#num->32 word)) src
+      ((val ((word_subword:(byte->num#num->2 word)) od (4,2)))*32,32) in
+    let d3 = (word_subword:(128 word->num#num->32 word)) src
+      ((val ((word_subword:(byte->num#num->2 word)) od (6,2)))*32,32) in
+    let res = (word_join:(32 word->96 word->128 word)) d3
+      ((word_join:(32 word->64 word->96 word)) d2
+        ((word_join:(32 word->32 word->64 word)) d1 d0)) in
+    (dest := res) s`;;
+
+let x86_PSRAD = new_definition
+  `x86_PSRAD dest imm8 s =
+    let d = read dest s in
+    let count_src = val (read imm8 s) in
+    let count = if count_src > 31 then 32 else count_src in
+    let r0 = word_ishr
+      ((word_subword:(128 word->num#num->32 word)) d (0,32)) count in
+    let r1 = word_ishr
+      ((word_subword:(128 word->num#num->32 word)) d (32,32)) count in
+    let r2 = word_ishr
+      ((word_subword:(128 word->num#num->32 word)) d (64,32)) count in
+    let r3 = word_ishr
+      ((word_subword:(128 word->num#num->32 word)) d (96,32)) count in
+    let res = (word_join:(32 word->96 word->128 word)) r3
+      ((word_join:(32 word->64 word->96 word)) r2
+        ((word_join:(32 word->32 word->64 word)) r1 r0)) in
+    (dest := res) s`;;
+
+let x86_PXOR = new_definition
+  `x86_PXOR dest src s =
+    let x = read dest s in
+    let y = read src s in
+    (dest := word_xor x y) s`;;
 
 (*** Out of alphabetical order as PUSH is a subroutine ***)
 
@@ -1288,6 +1369,12 @@ let x86_XOR = new_definition
          CF := F ,,
          OF := F ,,
          UNDEFINED_VALUES[AF]) s`;;
+
+let x86_XORPS = new_definition
+  `x86_XORPS dest src s =
+    let x = read src s in
+    let y = read dest s in
+    (dest := word_xor x y) s`;;
 
 (* ------------------------------------------------------------------------- *)
 (* State components of various sizes corresponding to GPRs.                  *)
@@ -1765,14 +1852,26 @@ let x86_execute = define
          | 32 -> x86_OR (OPERAND32 dest s) (OPERAND32 src s)
          | 16 -> x86_OR (OPERAND16 dest s) (OPERAND16 src s)
          | 8 -> x86_OR (OPERAND8 dest s) (OPERAND8 src s)) s
+    | PADDD dest src ->
+        x86_PADDD (OPERAND128_SSE dest s) (OPERAND128_SSE src s) s
+    | PADDQ dest src ->
+        x86_PADDQ (OPERAND128_SSE dest s) (OPERAND128_SSE src s) s
+    | PAND dest src ->
+        x86_PAND (OPERAND128_SSE dest s) (OPERAND128_SSE src s) s
     | POP dest ->
         (match operand_size dest with
            64 -> x86_POP (OPERAND64 dest s)
          | 16 -> x86_POP (OPERAND16 dest s)) s
+    | PSHUFD dest src imm8 ->
+        x86_PSHUFD (OPERAND128_SSE dest s) (OPERAND128_SSE src s) (OPERAND8 imm8 s) s
+    | PSRAD dest imm8 ->
+        x86_PSRAD (OPERAND128_SSE dest s) (OPERAND8 imm8 s) s
     | PUSH src ->
         (match operand_size src with
            64 -> x86_PUSH (OPERAND64 src s)
          | 16 -> x86_PUSH (OPERAND16 src s)) s
+    | PXOR dest src ->
+        x86_PXOR (OPERAND128_SSE dest s) (OPERAND128_SSE src s) s
     | RCL dest src ->
         (match operand_size dest with
            64 -> x86_RCL (OPERAND64 dest s)
@@ -1910,6 +2009,8 @@ let x86_execute = define
          | 32 -> x86_XOR (OPERAND32 dest s) (OPERAND32 src s)
          | 16 -> x86_XOR (OPERAND16 dest s) (OPERAND16 src s)
          | 8 -> x86_XOR (OPERAND8 dest s) (OPERAND8 src s)) s
+    | XORPS dest src ->
+         x86_XORPS (OPERAND128_SSE dest s) (OPERAND128_SSE src s) s
     | _ -> (\s'. F)`;;
 
 (* ------------------------------------------------------------------------- *)
@@ -2610,9 +2711,11 @@ let X86_OPERATION_CLAUSES =
     x86_DIV2; x86_ENDBR64; x86_IMUL; x86_IMUL2; x86_IMUL3; x86_INC; x86_LEA; x86_LZCNT;
     x86_MOV; x86_MOVAPS; x86_MOVDQA; x86_MOVDQU; x86_MOVSX; x86_MOVUPS; x86_MOVZX;
     x86_MUL2; x86_MULX4; x86_NEG; x86_NOP; x86_NOT; x86_OR;
-    x86_POP_ALT; x86_PUSH_ALT; x86_RCL; x86_RCR; x86_RET; x86_ROL; x86_ROR;
+    x86_PADDD; x86_PADDQ; x86_PAND; x86_POP_ALT; x86_PSHUFD; x86_PSRAD;
+    x86_PUSH_ALT; x86_PXOR;
+    x86_RCL; x86_RCR; x86_RET; x86_ROL; x86_ROR;
     x86_SAR; x86_SBB_ALT; x86_SET; x86_SHL; x86_SHLD; x86_SHR; x86_SHRD;
-    x86_STC; x86_SUB_ALT; x86_TEST; x86_TZCNT; x86_XCHG; x86_XOR;
+    x86_STC; x86_SUB_ALT; x86_TEST; x86_TZCNT; x86_XCHG; x86_XOR; x86_XORPS;
     (*** AVX2 instructions ***)
     x86_VPXOR;
     (*** 32-bit backups since the ALT forms are 64-bit only ***)

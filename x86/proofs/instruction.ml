@@ -278,8 +278,14 @@ let instruction_INDUCTION,instruction_RECURSION = define_type
    | NOP
    | NOT operand
    | OR operand operand
+   | PADDD operand operand
+   | PADDQ operand operand
+   | PAND operand operand
    | POP operand
+   | PSHUFD operand operand operand
+   | PSRAD operand operand
    | PUSH operand
+   | PXOR operand operand
    | RCL operand operand
    | RCR operand operand
    | RET
@@ -298,7 +304,8 @@ let instruction_INDUCTION,instruction_RECURSION = define_type
    | TZCNT operand operand
    | VPXOR operand operand operand
    | XCHG operand operand
-   | XOR operand operand";;
+   | XOR operand operand
+   | XORPS operand operand";;
 
 (* ------------------------------------------------------------------------- *)
 (* Some shorthands for addressing modes etc.                                 *)
