@@ -669,7 +669,7 @@ let cosimulate_sse_mov_unaligned_base_disp_harness(pfx, opcode) =
   ];;
 
 (* Mode: base (rsp) + scale*index + displacement
-   Fixed: use of registers, operand size = 64
+   Fixed: use of registers
    Randomized: addressing mode parameters *)
 let cosimulate_sse_mov_unaligned_rsp_harness(pfx, opcode) =
   let [rest, scale, index] = rand_scale_index 128 240 in
@@ -719,7 +719,7 @@ let cosimulate_sse_mov_aligned_base_disp_harness(pfx, opcode) =
   ];;
 
 (* Mode: base (rsp) + scale*index + displacement
-   Fixed: use of registers, operand size = 64
+   Fixed: use of registers
    Randomized: addressing mode parameters
    Note: address should be 16-aligned
 *)
