@@ -2689,7 +2689,9 @@ let X86_UNDEFINED_CHOOSE_TAC =
 (*** This is to force more aggressive use of assumptions and
  *** simplification if we have a conditional indicative of a
  *** possible exception. Currently this only arises in the
- *** division instruction for cases we are verifying
+ *** division instruction for cases we are verifying and in
+ *** if conditions that checks for alignment in
+ *** MOVAPS and MOVDQA
  ***)
 
 let X86_FORCE_CONDITIONAL_CONV =
@@ -2702,9 +2704,10 @@ let X86_FORCE_CONDITIONAL_CONV =
          (ONCE_DEPTH_CONV DIMINDEX_CONV))) THENC
        RATOR_CONV(RATOR_CONV(LAND_CONV
          (DEPTH_CONV WORD_NUM_RED_CONV))) THENC
-       GEN_REWRITE_CONV
-        (RATOR_CONV o RATOR_CONV o LAND_CONV o TOP_DEPTH_CONV) ths THENC
-       GEN_REWRITE_CONV RATOR_CONV [COND_CLAUSES] in
+       ALIGNED_16_CONV ths THENC
+       TRY_CONV (GEN_REWRITE_CONV
+        (RATOR_CONV o RATOR_CONV o LAND_CONV o TOP_DEPTH_CONV) ths) THENC
+       TRY_CONV (GEN_REWRITE_CONV RATOR_CONV [COND_CLAUSES]) in
      let chconv t = if trigger t then baseconv t else failwith "baseconv" in
      fun tm -> if trigger tm then (REPEATC chconv THENC TRY_CONV BETA_CONV) tm
                else REFL tm;;
@@ -2777,11 +2780,10 @@ let X86_CONV (decode_ths:thm option array) ths tm =
      GEN_REWRITE_CONV (RAND_CONV o TOP_DEPTH_CONV) [GSYM ADD_ASSOC] THENC
      RAND_CONV NUM_REDUCE_CONV) THENC
    TOP_DEPTH_CONV COMPONENT_WRITE_OVER_WRITE_CONV THENC
-   GEN_REWRITE_CONV TOP_DEPTH_CONV ths THENC
+   GEN_REWRITE_CONV (SUB_COMPONENTS_CONV o TOP_DEPTH_CONV) ths THENC
    GEN_REWRITE_CONV TOP_DEPTH_CONV [WORD_VAL] THENC
    ONCE_DEPTH_CONV WORD_PC_PLUS_CONV THENC
    DEPTH_CONV WORD_NUM_RED_CONV THENC
-   ALIGNED_16_CONV ths THENC
    ONCE_DEPTH_CONV NORMALIZE_RELATIVE_ADDRESS_CONV
  ) tm;;
 
