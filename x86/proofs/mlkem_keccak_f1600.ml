@@ -534,7 +534,8 @@ let MLKEM_KECCAK_F1600_SPEC = prove(
          read RSP s = stackpointer)
     // Postcondition
     (\s. read RIP s = word (pc+0x14))
-    (MAYCHANGE [RIP;RSP;RBX;RBP;R12;R13;R14;R15] ,, MAYCHANGE SOME_FLAGS)`,
+    (MAYCHANGE [RIP;RSP;RBX;RBP;R12;R13;R14;R15] ,, MAYCHANGE SOME_FLAGS ,, 
+    MAYCHANGE [memory :> bytes (word_sub stackpointer (word 48), 48)])`,
   
   (* REWRITE_TAC[fst EXEC] loads the porgram? 
   *)
@@ -558,14 +559,14 @@ let MLKEM_KECCAK_F1600_SPEC = prove(
   MAP_EVERY X_GEN_TAC [`stackpointer:int64`] THEN
   (*) MAP_EVERY X_GEN_TAC [`stackpointer:int64`] - From ?- !x. p[x] to ?- p[y] with specified ‘y  
   *) 
-  REWRITE_TAC[NONOVERLAPPING_CLAUSES] THEN 
+  REWRITE_TAC[NONOVERLAPPING_CLAUSES; SOME_FLAGS] THEN 
   (* STRIP_TAC - simplifies and breaks down the goals
        o For goals of form P ∧ Q, it creates two subgoals: P and Q;
        o For goals of form P ⇒ Q, it adds P to the assumptions and makes Q the new goal;
        o For goals of form ∀x. P(x), it introduces a new variable and makes P(x) the goal;
     Break down goal, ?- p /\ q to ?- p and ?- q etc. etc. 
     *)
-  STRIP_TAC THEN
+  REPEAT STRIP_TAC THEN
   ENSURES_INIT_TAC "s0" THEN
 
   X86_STEPS_TAC EXEC (1--1) THEN
