@@ -3,11 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0 OR ISC OR MIT-0
  *)
 
+ needs "x86/proofs/base.ml";;
+
 (******************************************************************************
   Proving a mlkem_keccak_f1600 property about program 'mlkem_keccak_f1600.S'
 ******************************************************************************)
-
-needs "x86/proofs/base.ml";;
 
 (* The following program
  
@@ -492,11 +492,6 @@ word 0x5b;
 word 0xf3; word 0xc3; 
 *) 
 
-let mlkem_keccak_f1600_mc = new_definition `mlkem_keccak_f1600_mc = [
-    word 0x53;  
-    word 0x5b
-]:((8)word)list`;;
-
 (* Later, the disassembly section will be checked against the actual object file "x86/mlkem/mlkem_keccak_f1600.o"
 let mlkem_keccak_f1600_mc = define_assert_from_elf "mlkem_keccak_f1600_mc" "x86/mlkem/mlkem_keccak_f1600.o"
 [
@@ -504,27 +499,80 @@ let mlkem_keccak_f1600_mc = define_assert_from_elf "mlkem_keccak_f1600_mc" "x86/
 ];;
 *)
 
-let EXEC = X86_MK_EXEC_RULE mlkem_keccak_f1600_mc;;
+(* Can I undefine the new_definition (or to redefine it) *)
+let mlkem_keccak_f1600_mc_longer = new_definition `mlkem_keccak_f1600_mc_longer = [
+    word 0x53; 
+    word 0x55; 
+    word 0x41; word 0x54; 
+    word 0x41; word 0x55; 
+    word 0x41; word 0x56; 
+    word 0x41; word 0x57; 
+    word 0x41; word 0x5f; 
+    word 0x41; word 0x5e; 
+    word 0x41; word 0x5d; 
+    word 0x41; word 0x5c; 
+    word 0x5d; 
+    word 0x5b
+]:((8)word)list`;;
 
+let EXEC = X86_MK_EXEC_RULE mlkem_keccak_f1600_mc_longer;;
+
+(*  nonoverlapping_modulo (2 EXP 64) (pc, 0x2) (val (word_sub stackpointer (word 8):int64),8)
+*** 
+  nonoverlapping_modulo (2 EXP 64) (pc, 0x14) (val (word_sub stackpointer (word 8):int64),8) /\
+  nonoverlapping_modulo (2 EXP 64) (pc, 0x14) (val (word_sub (word_sub stackpointer (word 8):int64) (word 8):int64),8) /\
+  nonoverlapping_modulo (2 EXP 64) (pc,0x14)  (val (word_sub (word_sub (word_sub stackpointer (word 8):int64) (word 8):int64) (word 8):int64), 8) /\
+  *)
 let MLKEM_KECCAK_F1600_SPEC = prove(
-  `forall (stackpointer:64 word) (pc:num).
-  nonoverlapping_modulo (2 EXP 64) (pc, 0x2) (val (word_sub stackpointer (word 8):int64),8)
+  `forall pc:num stackpointer:int64. 
+    P[stackpointer] /\
+    nonoverlapping_modulo (2 EXP 64) (pc, 0x14) (val (word_sub stackpointer (word 48):int64),48)
     ==> ensures x86
     // Precondition
-    (\s. bytes_loaded s (word pc) mlkem_keccak_f1600_mc /\
+    (\s. bytes_loaded s (word pc) mlkem_keccak_f1600_mc_longer /\
          read RIP s = word pc/\
-         read RSP s = stackpointer /\
-         read RBX s = y0)
+         read RSP s = stackpointer)
     // Postcondition
-    (\s. read RIP s = word (pc+0x2))
-    (MAYCHANGE [RIP;RSP;RBX;RBP;R12;R13;R14;R15] ,, MAYCHANGE SOME_FLAGS,, 
-    MAYCHANGE [memory :> bytes64 (word_sub stackpointer (word 8))])`,
-
-  REWRITE_TAC[NONOVERLAPPING_CLAUSES; SOME_FLAGS; fst EXEC] THEN
-  REPEAT STRIP_TAC THEN
+    (\s. read RIP s = word (pc+0x14))
+    (MAYCHANGE [RIP;RSP;RBX;RBP;R12;R13;R14;R15] ,, MAYCHANGE SOME_FLAGS)`,
+  
+  (* REWRITE_TAC[fst EXEC] loads the porgram? 
+  *)
+  REWRITE_TAC[fst EXEC] THEN 
+  (* MAP_EVERY X_GEN_TAC [`pc:num`] 
+      o MAP_EVERY atac [a] - apply the following tactic to every element in the list 
+            Map tactic-producing function over a list of arguments, apply in sequence
+      o X_GEN_TAC - when the goal has a form like ∀pc:num. P(pc); this tactic would change the goal to just 
+            P(pc) with pc as a new assumption in the context
+      From ?- !x. p[x] to ?- p[y] with specified ‘y 
+      *)
+  MAP_EVERY X_GEN_TAC [`pc:num`] THEN
+  (* WORD_FORALL_OFFSET_TAC - offsetting the base address when "stackpointer" is still universally quantified variable 
+  *)
+  WORD_FORALL_OFFSET_TAC 48 THEN
+  (* CONV_TAC(ONCE_DEPTH_CONV NORMALIZE_RELATIVE_ADDRESS_CONV) - normaizes the addresses 
+  *)
+  CONV_TAC(ONCE_DEPTH_CONV NORMALIZE_RELATIVE_ADDRESS_CONV) THEN
+  (*) MAP_EVERY X_GEN_TAC [`stackpointer:int64`] - From ?- !x. p[x] to ?- p[y] with specified ‘y  
+  *) 
+  MAP_EVERY X_GEN_TAC [`stackpointer:int64`] THEN
+  (*) MAP_EVERY X_GEN_TAC [`stackpointer:int64`] - From ?- !x. p[x] to ?- p[y] with specified ‘y  
+  *) 
+  REWRITE_TAC[NONOVERLAPPING_CLAUSES] THEN 
+  (* STRIP_TAC - simplifies and breaks down the goals
+       o For goals of form P ∧ Q, it creates two subgoals: P and Q;
+       o For goals of form P ⇒ Q, it adds P to the assumptions and makes Q the new goal;
+       o For goals of form ∀x. P(x), it introduces a new variable and makes P(x) the goal;
+    Break down goal, ?- p /\ q to ?- p and ?- q etc. etc. 
+    *)
+  STRIP_TAC THEN
   ENSURES_INIT_TAC "s0" THEN
 
-  X86_STEPS_TAC EXEC (1--2) THEN
+  X86_STEPS_TAC EXEC (1--1) THEN
+  X86_STEPS_TAC EXEC (2--2) THEN
+  X86_STEPS_TAC EXEC (3--3) THEN
+  X86_STEPS_TAC EXEC (4--12) THEN
   ENSURES_FINAL_STATE_TAC THEN
 
-  ASM_REWRITE_TAC[]);;
+  ASM_REWRITE_TAC[]
+  );;
