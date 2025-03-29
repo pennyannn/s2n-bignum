@@ -66,6 +66,12 @@
 : notq$
 : or$
 : orq$
+: paddd$
+: paddq$
+: pand$
+: pshufd$
+: psrad$
+: pxor$
 : pop$
 : popq$
 : push$
@@ -94,4 +100,5 @@
 : xor$
 : xorl$
 : xorq$
+: xorps$
 : $
