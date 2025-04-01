@@ -755,7 +755,7 @@ let MLKEM_KECCAK_F1600_SPEC = prove(
   (\s. read RIP s = word (pc+0x31b))
   (MAYCHANGE [RIP;RSP;RAX;RBX;RCX;RDX;RBP;R8;R9;R10;R11;R12;R13;R14;R15;RDI;RSI] ,, MAYCHANGE SOME_FLAGS ,, 
   MAYCHANGE [memory :> bytes (word_sub stackpointer (word 248), 248)],, 
-  MAYCHANGE [memory :> bytes (word_add rdi (word 0), 248)])`
+  MAYCHANGE [memory :> bytes (word_add rdi (word 0), 200)])`
   ,
 
   REWRITE_TAC[fst EXEC] THEN 
