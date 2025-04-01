@@ -506,8 +506,9 @@ let mlkem_keccak_f1600_mc = define_assert_from_elf "mlkem_keccak_f1600_mc" "x86/
 *)
 
 (* Can I undefine the new_definition (or to redefine it) *)
+
 let mlkem_keccak_f1600_mc_no_loop = new_definition `mlkem_keccak_f1600_mc_no_loop = [
-    word 0x53; 
+    word 0x52; 
     word 0x55; 
     word 0x41; word 0x54; 
     word 0x41; word 0x55; 
@@ -741,31 +742,29 @@ let EXEC = X86_MK_EXEC_RULE mlkem_keccak_f1600_mc_no_loop;;
 
 
 let MLKEM_KECCAK_F1600_SPEC = prove(
-  `forall pc:num stackpointer:int64 rdi. 
-  P[stackpointer] /\ 
+  `forall pc:num stackpointer:int64 rdi_1:int64.
   nonoverlapping_modulo (2 EXP 64) (pc, 0x31b) (val (word_sub stackpointer (word 248):int64),248) /\
-  nonoverlapping_modulo (2 EXP 64) (pc, 0x31b) (val (word_add (rdi) (word 0):int64),200)
+  nonoverlapping_modulo (2 EXP 64) (pc, 0x31b) (val (word_add (rdi_1) (word 0):int64),200)
     ==> ensures x86
   // Precondition
   (\s. bytes_loaded s (word pc) mlkem_keccak_f1600_mc_no_loop /\
        read RIP s = word pc /\
-       read RSP s = stackpointer /\
-       read RDI s = rdi)
+       read RSP s = stackpointer  /\
+       read RDI s = rdi_1)
   // Postcondition
   (\s. read RIP s = word (pc+0x31b))
   (MAYCHANGE [RIP;RSP;RAX;RBX;RCX;RDX;RBP;R8;R9;R10;R11;R12;R13;R14;R15;RDI;RSI] ,, MAYCHANGE SOME_FLAGS ,, 
   MAYCHANGE [memory :> bytes (word_sub stackpointer (word 248), 248)],, 
-  MAYCHANGE [memory :> bytes (word_add rdi (word 0), 200)])`
+  MAYCHANGE [memory :> bytes (word_add rdi_1 (word 0), 200)])`
   ,
 
   REWRITE_TAC[fst EXEC] THEN 
   MAP_EVERY X_GEN_TAC [`pc:num`] THEN
   WORD_FORALL_OFFSET_TAC 248 THEN
   CONV_TAC(ONCE_DEPTH_CONV NORMALIZE_RELATIVE_ADDRESS_CONV) THEN
-  MAP_EVERY X_GEN_TAC [`stackpointer:int64`] THEN
+  MAP_EVERY X_GEN_TAC [`stackpointer:int64`;`rdi_1:int64`] THEN
   REPEAT STRIP_TAC THEN
-  REWRITE_TAC[NONOVERLAPPING_CLAUSES; SOME_FLAGS] THEN 
-  REPEAT STRIP_TAC THEN
+  REWRITE_TAC[SOME_FLAGS] THEN 
   ENSURES_INIT_TAC "s0" THEN
 
   X86_STEPS_TAC EXEC (1--1) THEN
