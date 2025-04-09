@@ -12974,7 +12974,8 @@ int test_known_values_xts_encrypt(void)
   iv[8]=0xf0;iv[9]=0x42;iv[10]=0x8e;iv[11]=0x84;
   iv[12]=0xa9;iv[13]=0xf8;iv[14]=0x75;iv[15]=0x64;
 
-  aes_hw_xts_encrypt(in,out,len,key1,key2,iv);
+  // aes_hw_xts_encrypt(in,out,len,key1,key2,iv);
+  aes_hw_xts_encrypt_clean(in,out,len,key1,key2,iv);
 
   unsigned char res[32]={
     0xcb, 0xaa, 0xd0, 0xe2, 0xf6, 0xce, 0xa3, 0xf5,\
@@ -13084,7 +13085,8 @@ int test_known_values_xts_encrypt(void)
   iv[8]=0x00;iv[9]=0x00;iv[10]=0x00;iv[11]=0x00;
   iv[12]=0x00;iv[13]=0x00;iv[14]=0x00;iv[15]=0x00;
 
-  aes_hw_xts_encrypt(in,out,len,key1,key2,iv);
+  // aes_hw_xts_encrypt(in,out,len,key1,key2,iv);
+  aes_hw_xts_encrypt_clean(in,out,len,key1,key2,iv);
 
   res[0]=0x7f;res[1]=0x11;res[2]=0x77;res[3]=0x52;
   res[4]=0xcc;res[5]=0x59;res[6]=0x8a;res[7]=0x8b;

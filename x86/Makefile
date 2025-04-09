@@ -390,6 +390,7 @@ BIGNUM_OBJ = curve25519/bignum_add_p25519.o \
              sm2/bignum_triple_sm2_alt.o
 
 AES_XTS_OBJ = aes-xts/aes_hw_xts_encrypt.o \
+              aes-xts/aes_hw_xts_encrypt_clean.o \
               aes-xts/aes_hw_xts_decrypt.o
 
 OBJ = $(POINT_OBJ) $(BIGNUM_OBJ) $(AES_XTS_OBJ)

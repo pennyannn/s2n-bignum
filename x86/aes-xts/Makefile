@@ -6,6 +6,7 @@
 # The x86 assembly (.S) files are all written for the GNU assembler
 
 OBJ = aes_hw_xts_encrypt.o \
+      aes_hw_xts_encrypt_clean.o \
       aes_hw_xts_decrypt.o
 
 %.o : %.S ; $(CC) -E -I../../include $< | as -o $@ -

@@ -2,10 +2,10 @@
 // SPDX-License-Identifier: Apache-2.0 OR ISC OR MIT-0
 
 // ----------------------------------------------------------------------------
-// Description
+// Description:
 // Inputs; output
 //
-// extern void aes_hw_xts_encrypt(const uint8_t *inp, uint8_t *out,
+// extern void aes_hw_xts_encrypt_clean(const uint8_t *inp, uint8_t *out,
 //   size_t len, const AES_KEY *key1, const AES_KEY *key2,
 //   const uint8_t iv[16]);
 //
@@ -17,13 +17,13 @@
 #include "_internal_s2n_bignum.h"
 
         // .intel_syntax noprefix
-        S2N_BN_SYM_VISIBILITY_DIRECTIVE(aes_hw_xts_encrypt)
-        S2N_BN_SYM_PRIVACY_DIRECTIVE(aes_hw_xts_encrypt)
+        S2N_BN_SYM_VISIBILITY_DIRECTIVE(aes_hw_xts_encrypt_clean)
+        S2N_BN_SYM_PRIVACY_DIRECTIVE(aes_hw_xts_encrypt_clean)
         .text
 
-.type  aes_hw_xts_encrypt,@function
+.type  aes_hw_xts_encrypt_clean,@function
 .align  16
-aes_hw_xts_encrypt:
+S2N_BN_SYMBOL(aes_hw_xts_encrypt_clean):
 .cfi_startproc
 _CET_ENDBR
   leaq  (%rsp),%r11
@@ -490,7 +490,7 @@ _CET_ENDBR
 .Lxts_enc_epilogue:
   ret
 .cfi_endproc
-.size  aes_hw_xts_encrypt,.-aes_hw_xts_encrypt
+.size  aes_hw_xts_encrypt_clean,.-aes_hw_xts_encrypt_clean
 
 .type  _aesni_encrypt2,@function
 .align  16

@@ -1,178 +1,31 @@
-.text
+// Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0 OR ISC OR MIT-0
 
-.type  _aesni_decrypt2,@function
-.align  16
-_aesni_decrypt2:
-.cfi_startproc
-  movups  (%rcx),%xmm0
-  shll  $4,%eax
-  movups  16(%rcx),%xmm1
-  xorps  %xmm0,%xmm2
-  xorps  %xmm0,%xmm3
-  movups  32(%rcx),%xmm0
-  leaq  32(%rcx,%rax,1),%rcx
-  negq  %rax
-  addq  $16,%rax
+// ----------------------------------------------------------------------------
+// Description
+// Inputs; output
+//
+// extern void aes_hw_xts_decrypt(const uint8_t *inp, uint8_t *out,
+//   size_t len, const AES_KEY *key1, const AES_KEY *key2,
+//   const uint8_t iv[16]);
+//
+// Standard x86-64 ABI: rdi = inp, rsi = out, rdx = len,
+//                      rcx = key1, r8 = key2, r9 = iv
+// Microsoft x64 ABI:   ???
+// ----------------------------------------------------------------------------
 
-.Ldec_loop2:
-.byte  102,15,56,222,209
-.byte  102,15,56,222,217
-  movups  (%rcx,%rax,1),%xmm1
-  addq  $32,%rax
-.byte  102,15,56,222,208
-.byte  102,15,56,222,216
-  movups  -16(%rcx,%rax,1),%xmm0
-  jnz  .Ldec_loop2
+#include "_internal_s2n_bignum.h"
 
-.byte  102,15,56,222,209
-.byte  102,15,56,222,217
-.byte  102,15,56,223,208
-.byte  102,15,56,223,216
-  ret
-.cfi_endproc
-.size  _aesni_decrypt2,.-_aesni_decrypt2
-.type  _aesni_decrypt3,@function
-.align  16
-_aesni_decrypt3:
-.cfi_startproc
-  movups  (%rcx),%xmm0
-  shll  $4,%eax
-  movups  16(%rcx),%xmm1
-  xorps  %xmm0,%xmm2
-  xorps  %xmm0,%xmm3
-  xorps  %xmm0,%xmm4
-  movups  32(%rcx),%xmm0
-  leaq  32(%rcx,%rax,1),%rcx
-  negq  %rax
-  addq  $16,%rax
+        // .intel_syntax noprefix
+        S2N_BN_SYM_VISIBILITY_DIRECTIVE(aes_hw_xts_decrypt)
+        S2N_BN_SYM_PRIVACY_DIRECTIVE(aes_hw_xts_decrypt)
+        .text
 
-.Ldec_loop3:
-.byte  102,15,56,222,209
-.byte  102,15,56,222,217
-.byte  102,15,56,222,225
-  movups  (%rcx,%rax,1),%xmm1
-  addq  $32,%rax
-.byte  102,15,56,222,208
-.byte  102,15,56,222,216
-.byte  102,15,56,222,224
-  movups  -16(%rcx,%rax,1),%xmm0
-  jnz  .Ldec_loop3
-
-.byte  102,15,56,222,209
-.byte  102,15,56,222,217
-.byte  102,15,56,222,225
-.byte  102,15,56,223,208
-.byte  102,15,56,223,216
-.byte  102,15,56,223,224
-  ret
-.cfi_endproc
-.size  _aesni_decrypt3,.-_aesni_decrypt3
-.type  _aesni_decrypt4,@function
-.align  16
-_aesni_decrypt4:
-.cfi_startproc
-  movups  (%rcx),%xmm0
-  shll  $4,%eax
-  movups  16(%rcx),%xmm1
-  xorps  %xmm0,%xmm2
-  xorps  %xmm0,%xmm3
-  xorps  %xmm0,%xmm4
-  xorps  %xmm0,%xmm5
-  movups  32(%rcx),%xmm0
-  leaq  32(%rcx,%rax,1),%rcx
-  negq  %rax
-.byte  0x0f,0x1f,0x00
-  addq  $16,%rax
-
-.Ldec_loop4:
-.byte  102,15,56,222,209
-.byte  102,15,56,222,217
-.byte  102,15,56,222,225
-.byte  102,15,56,222,233
-  movups  (%rcx,%rax,1),%xmm1
-  addq  $32,%rax
-.byte  102,15,56,222,208
-.byte  102,15,56,222,216
-.byte  102,15,56,222,224
-.byte  102,15,56,222,232
-  movups  -16(%rcx,%rax,1),%xmm0
-  jnz  .Ldec_loop4
-
-.byte  102,15,56,222,209
-.byte  102,15,56,222,217
-.byte  102,15,56,222,225
-.byte  102,15,56,222,233
-.byte  102,15,56,223,208
-.byte  102,15,56,223,216
-.byte  102,15,56,223,224
-.byte  102,15,56,223,232
-  ret
-.cfi_endproc
-.size  _aesni_decrypt4,.-_aesni_decrypt4
-.type  _aesni_decrypt6,@function
-.align  16
-_aesni_decrypt6:
-.cfi_startproc
-  movups  (%rcx),%xmm0
-  shll  $4,%eax
-  movups  16(%rcx),%xmm1
-  xorps  %xmm0,%xmm2
-  pxor  %xmm0,%xmm3
-  pxor  %xmm0,%xmm4
-.byte  102,15,56,222,209
-  leaq  32(%rcx,%rax,1),%rcx
-  negq  %rax
-.byte  102,15,56,222,217
-  pxor  %xmm0,%xmm5
-  pxor  %xmm0,%xmm6
-.byte  102,15,56,222,225
-  pxor  %xmm0,%xmm7
-  movups  (%rcx,%rax,1),%xmm0
-  addq  $16,%rax
-  jmp  .Ldec_loop6_enter
-.align  16
-.Ldec_loop6:
-.byte  102,15,56,222,209
-.byte  102,15,56,222,217
-.byte  102,15,56,222,225
-.Ldec_loop6_enter:
-.byte  102,15,56,222,233
-.byte  102,15,56,222,241
-.byte  102,15,56,222,249
-  movups  (%rcx,%rax,1),%xmm1
-  addq  $32,%rax
-.byte  102,15,56,222,208
-.byte  102,15,56,222,216
-.byte  102,15,56,222,224
-.byte  102,15,56,222,232
-.byte  102,15,56,222,240
-.byte  102,15,56,222,248
-  movups  -16(%rcx,%rax,1),%xmm0
-  jnz  .Ldec_loop6
-
-.byte  102,15,56,222,209
-.byte  102,15,56,222,217
-.byte  102,15,56,222,225
-.byte  102,15,56,222,233
-.byte  102,15,56,222,241
-.byte  102,15,56,222,249
-.byte  102,15,56,223,208
-.byte  102,15,56,223,216
-.byte  102,15,56,223,224
-.byte  102,15,56,223,232
-.byte  102,15,56,223,240
-.byte  102,15,56,223,248
-  ret
-.cfi_endproc
-.size  _aesni_decrypt6,.-_aesni_decrypt6
-
-.globl  aes_hw_xts_decrypt
-.hidden aes_hw_xts_decrypt
 .type  aes_hw_xts_decrypt,@function
 .align  16
 aes_hw_xts_decrypt:
 .cfi_startproc
-// TODO: _CET_ENDBR
+_CET_ENDBR
   leaq  (%rsp),%r11
 .cfi_def_cfa_register  %r11
   pushq  %rbp
@@ -675,6 +528,172 @@ aes_hw_xts_decrypt:
   ret
 .cfi_endproc
 .size  aes_hw_xts_decrypt,.-aes_hw_xts_decrypt
+
+.type  _aesni_decrypt2,@function
+.align  16
+_aesni_decrypt2:
+.cfi_startproc
+  movups  (%rcx),%xmm0
+  shll  $4,%eax
+  movups  16(%rcx),%xmm1
+  xorps  %xmm0,%xmm2
+  xorps  %xmm0,%xmm3
+  movups  32(%rcx),%xmm0
+  leaq  32(%rcx,%rax,1),%rcx
+  negq  %rax
+  addq  $16,%rax
+
+.Ldec_loop2:
+.byte  102,15,56,222,209
+.byte  102,15,56,222,217
+  movups  (%rcx,%rax,1),%xmm1
+  addq  $32,%rax
+.byte  102,15,56,222,208
+.byte  102,15,56,222,216
+  movups  -16(%rcx,%rax,1),%xmm0
+  jnz  .Ldec_loop2
+
+.byte  102,15,56,222,209
+.byte  102,15,56,222,217
+.byte  102,15,56,223,208
+.byte  102,15,56,223,216
+  ret
+.cfi_endproc
+.size  _aesni_decrypt2,.-_aesni_decrypt2
+.type  _aesni_decrypt3,@function
+.align  16
+_aesni_decrypt3:
+.cfi_startproc
+  movups  (%rcx),%xmm0
+  shll  $4,%eax
+  movups  16(%rcx),%xmm1
+  xorps  %xmm0,%xmm2
+  xorps  %xmm0,%xmm3
+  xorps  %xmm0,%xmm4
+  movups  32(%rcx),%xmm0
+  leaq  32(%rcx,%rax,1),%rcx
+  negq  %rax
+  addq  $16,%rax
+
+.Ldec_loop3:
+.byte  102,15,56,222,209
+.byte  102,15,56,222,217
+.byte  102,15,56,222,225
+  movups  (%rcx,%rax,1),%xmm1
+  addq  $32,%rax
+.byte  102,15,56,222,208
+.byte  102,15,56,222,216
+.byte  102,15,56,222,224
+  movups  -16(%rcx,%rax,1),%xmm0
+  jnz  .Ldec_loop3
+
+.byte  102,15,56,222,209
+.byte  102,15,56,222,217
+.byte  102,15,56,222,225
+.byte  102,15,56,223,208
+.byte  102,15,56,223,216
+.byte  102,15,56,223,224
+  ret
+.cfi_endproc
+.size  _aesni_decrypt3,.-_aesni_decrypt3
+.type  _aesni_decrypt4,@function
+.align  16
+_aesni_decrypt4:
+.cfi_startproc
+  movups  (%rcx),%xmm0
+  shll  $4,%eax
+  movups  16(%rcx),%xmm1
+  xorps  %xmm0,%xmm2
+  xorps  %xmm0,%xmm3
+  xorps  %xmm0,%xmm4
+  xorps  %xmm0,%xmm5
+  movups  32(%rcx),%xmm0
+  leaq  32(%rcx,%rax,1),%rcx
+  negq  %rax
+.byte  0x0f,0x1f,0x00
+  addq  $16,%rax
+
+.Ldec_loop4:
+.byte  102,15,56,222,209
+.byte  102,15,56,222,217
+.byte  102,15,56,222,225
+.byte  102,15,56,222,233
+  movups  (%rcx,%rax,1),%xmm1
+  addq  $32,%rax
+.byte  102,15,56,222,208
+.byte  102,15,56,222,216
+.byte  102,15,56,222,224
+.byte  102,15,56,222,232
+  movups  -16(%rcx,%rax,1),%xmm0
+  jnz  .Ldec_loop4
+
+.byte  102,15,56,222,209
+.byte  102,15,56,222,217
+.byte  102,15,56,222,225
+.byte  102,15,56,222,233
+.byte  102,15,56,223,208
+.byte  102,15,56,223,216
+.byte  102,15,56,223,224
+.byte  102,15,56,223,232
+  ret
+.cfi_endproc
+.size  _aesni_decrypt4,.-_aesni_decrypt4
+.type  _aesni_decrypt6,@function
+.align  16
+_aesni_decrypt6:
+.cfi_startproc
+  movups  (%rcx),%xmm0
+  shll  $4,%eax
+  movups  16(%rcx),%xmm1
+  xorps  %xmm0,%xmm2
+  pxor  %xmm0,%xmm3
+  pxor  %xmm0,%xmm4
+.byte  102,15,56,222,209
+  leaq  32(%rcx,%rax,1),%rcx
+  negq  %rax
+.byte  102,15,56,222,217
+  pxor  %xmm0,%xmm5
+  pxor  %xmm0,%xmm6
+.byte  102,15,56,222,225
+  pxor  %xmm0,%xmm7
+  movups  (%rcx,%rax,1),%xmm0
+  addq  $16,%rax
+  jmp  .Ldec_loop6_enter
+.align  16
+.Ldec_loop6:
+.byte  102,15,56,222,209
+.byte  102,15,56,222,217
+.byte  102,15,56,222,225
+.Ldec_loop6_enter:
+.byte  102,15,56,222,233
+.byte  102,15,56,222,241
+.byte  102,15,56,222,249
+  movups  (%rcx,%rax,1),%xmm1
+  addq  $32,%rax
+.byte  102,15,56,222,208
+.byte  102,15,56,222,216
+.byte  102,15,56,222,224
+.byte  102,15,56,222,232
+.byte  102,15,56,222,240
+.byte  102,15,56,222,248
+  movups  -16(%rcx,%rax,1),%xmm0
+  jnz  .Ldec_loop6
+
+.byte  102,15,56,222,209
+.byte  102,15,56,222,217
+.byte  102,15,56,222,225
+.byte  102,15,56,222,233
+.byte  102,15,56,222,241
+.byte  102,15,56,222,249
+.byte  102,15,56,223,208
+.byte  102,15,56,223,216
+.byte  102,15,56,223,224
+.byte  102,15,56,223,232
+.byte  102,15,56,223,240
+.byte  102,15,56,223,248
+  ret
+.cfi_endproc
+.size  _aesni_decrypt6,.-_aesni_decrypt6
 
 // TODO:
 .align 16

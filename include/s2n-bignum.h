@@ -1129,6 +1129,9 @@ typedef struct aes_key_st AES_KEY;
 extern void aes_hw_xts_encrypt(const uint8_t *inp, uint8_t *out,size_t len,
   const AES_KEY *key1, const AES_KEY *key2,
   const uint8_t iv[16]);
+extern void aes_hw_xts_encrypt_clean(const uint8_t *inp, uint8_t *out,size_t len,
+  const AES_KEY *key1, const AES_KEY *key2,
+  const uint8_t iv[16]);
 extern void aes_hw_xts_decrypt(const uint8_t *in, uint8_t *out, size_t len,
   const AES_KEY *key1, const AES_KEY *key2,
   const uint8_t iv[16]);
