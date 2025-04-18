@@ -26,12 +26,12 @@
 aes_hw_xts_encrypt:
 .cfi_startproc
 _CET_ENDBR
-  leaq  (%rsp),%r11
-.cfi_def_cfa_register  %r11
-  pushq  %rbp
-.cfi_offset  %rbp,-16
-  subq  $112,%rsp
-  andq  $-16,%rsp
+  // leaq  (%rsp),%r11
+// .cfi_def_cfa_register  %r11
+  // pushq  %rbp
+// .cfi_offset  %rbp,-16
+  // subq  $112,%rsp
+  // andq  $-16,%rsp
   movups  (%r9),%xmm2
   movl  240(%r8),%eax
   movl  240(%rcx),%r10d
@@ -483,10 +483,10 @@ _CET_ENDBR
   movaps  %xmm0,96(%rsp)
   pxor  %xmm14,%xmm14
   pxor  %xmm15,%xmm15
-  movq  -8(%r11),%rbp
-.cfi_restore  %rbp
-  leaq  (%r11),%rsp
-.cfi_def_cfa_register  %rsp
+  // movq  -8(%r11),%rbp
+// .cfi_restore  %rbp
+  // leaq  (%r11),%rsp
+// .cfi_def_cfa_register  %rsp
 .Lxts_enc_epilogue:
   ret
 .cfi_endproc

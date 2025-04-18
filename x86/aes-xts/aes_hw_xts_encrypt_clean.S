@@ -59,12 +59,12 @@
 S2N_BN_SYMBOL(aes_hw_xts_encrypt_clean):
 .cfi_startproc
 _CET_ENDBR
-  leaq  (%rsp),%r11  // save frame ptr from caller
-.cfi_def_cfa_register  %r11
-  pushq  %rbp  // rbp should not change
-.cfi_offset  %rbp,-16
-  subq  $112,%rsp  // allocate a frame
-  andq  $-16,%rsp // align to 16-bytes
+  // leaq  (%rsp),%r11  // save frame ptr from caller
+// .cfi_def_cfa_register  %r11
+  // pushq  %rbp  // rbp should not change
+// .cfi_offset  %rbp,-16
+  // subq  $112,%rsp  // allocate a frame
+  // andq  $-16,%rsp // align to 16-bytes
   movups  (%r9),%xmm2 // load cleartext tweak
   movl  240(%r8),%eax // key2->rounds
   movl  240(%rcx),%r10d // key1->rounds
@@ -476,10 +476,10 @@ _CET_ENDBR
   movaps  %xmm0,64(%rsp)
   movaps  %xmm0,80(%rsp)
   movaps  %xmm0,96(%rsp)
-  movq  -8(%r11),%rbp
-.cfi_restore  %rbp
-  leaq  (%r11),%rsp
-.cfi_def_cfa_register  %rsp
+  //movq  -8(%r11),%rbp
+//.cfi_restore  %rbp
+  //leaq  (%r11),%rsp
+//.cfi_def_cfa_register  %rsp
 .Lxts_enc_epilogue:
   ret
 .cfi_endproc
