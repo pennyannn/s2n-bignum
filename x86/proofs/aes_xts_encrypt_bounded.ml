@@ -1832,9 +1832,9 @@ let ghost_ymms = new_definition
 
 (* TODO: Currently assuming just one block *)
 let aes_xts_eqin = new_definition
-  `forall s1 s1' in_ptr out_ptr key1_ptr key2_ptr iv_ptr stack_pointer.
-    (aes_xts_eqin:(x86state#x86state)->int64->int64->int64->int64->int64->int64->bool)
-      (s1,s1') in_ptr out_ptr key1_ptr key2_ptr iv_ptr stack_pointer<=>
+  `forall s1 s1' in_ptr out_ptr key1_ptr key2_ptr iv_ptr r1 stack_pointer.
+    (aes_xts_eqin:(x86state#x86state)->int64->int64->int64->int64->int64->int64->int64->bool)
+      (s1,s1') in_ptr out_ptr key1_ptr key2_ptr iv_ptr r1 stack_pointer<=>
      (read RDI s1 = in_ptr /\
       read RDI s1' = in_ptr /\
       read RSI s1 = out_ptr /\
@@ -1849,6 +1849,8 @@ let aes_xts_eqin = new_definition
       read R8 s1' = key2_ptr /\
       read R9 s1 = iv_ptr /\
       read R9 s1' = iv_ptr /\
+      read RBP s1 = r1 /\
+      read RBP s1' = r1 /\
       // Memory equivalence at in_ptr for 16-bytes (one block)
       (exists n.
         read (memory :> bytes128 in_ptr) s1 = n /\
@@ -1861,17 +1863,21 @@ let aes_xts_eqin = new_definition
       (exists iv.
       read (memory :> bytes128 iv_ptr) s1 = iv /\
       read (memory :> bytes128 iv_ptr) s1' = iv) /\
+      // return address equivalence
+      (exists returnaddress.
+      read (memory :> bytes64 stack_pointer) s1 = returnaddress /\
+      read (memory :> bytes64 stack_pointer) s1' = returnaddress) /\
       // ghost values
-      (ghost_ymms s1) /\ (ghost_ymms s1') /\
-      (exists r1. read RBP s1 = r1) /\
-      (exists r1'. read RBP s1' = r1')
+      (ghost_ymms s1) /\ (ghost_ymms s1')
       )`;;
 
 let aes_xts_eqout = new_definition
-  `forall s1 s1' out_ptr.
-    (aes_xts_eqout:(x86state#x86state)->int64->bool) (s1,s1') out_ptr <=>
+  `forall s1 s1' r1 out_ptr.
+    (aes_xts_eqout:(x86state#x86state)->int64->int64->bool) (s1,s1') r1 out_ptr <=>
      (read RSI s1 = word_add out_ptr (word 16)  /\
       read RSI s1' = word_add out_ptr (word 16) /\
+      read RBP s1 = r1 /\
+      read RBP s1' = r1 /\
       (exists n.
         read (memory :> bytes128 out_ptr) s1 = n /\
         read (memory :> bytes128 out_ptr) s1' = n))`;;
@@ -1887,36 +1893,38 @@ let equiv_goal = mk_equiv_statement
    word pc2,LENGTH (APPEND aes_hw_xts_encrypt_clean_mc xts_magic_clean);
    word_sub stack_pointer (word 128),128; in_ptr,16; iv_ptr,16; key1_ptr,244; key2_ptr,244] /\
   aligned 16 (word_sub stack_pointer (word 128)) /\
-  aligned 16 (word (pc + 2448):int64) /\
-  aligned 16 (word (pc2 + 2480):int64)`
+  aligned 16 (word (pc + 2480):int64) /\
+  aligned 16 (word (pc2 + 2512):int64)`
   (* the above two alignments are for constant value xts_magic *)
   aes_xts_eqin
   aes_xts_eqout
-  aes_hw_xts_encrypt_mc (Some xts_magic) 0 1864
+  aes_hw_xts_encrypt_mc (Some xts_magic) 0 1903
   (* TODO: currently RBP is being used *)
   `MAYCHANGE_REGS_AND_FLAGS_PERMITTED_BY_ABI ,,
    MAYCHANGE [RBP] ,,
    MAYCHANGE [memory :> bytes128 out_ptr;
-              memory :> bytes128 (word_add stack_pointer (word 0));
-              memory :> bytes128 (word_add stack_pointer (word 16));
-              memory :> bytes128 (word_add stack_pointer (word 32));
-              memory :> bytes128 (word_add stack_pointer (word 48));
-              memory :> bytes128 (word_add stack_pointer (word 64));
-              memory :> bytes128 (word_add stack_pointer (word 80));
-              memory :> bytes128 (word_add stack_pointer (word 96))]`
-  aes_hw_xts_encrypt_clean_mc (Some xts_magic_clean) 0 1896
+              memory :> bytes128 (word_sub stack_pointer (word 128));
+              memory :> bytes128 (word_sub stack_pointer (word 112));
+              memory :> bytes128 (word_sub stack_pointer (word 96));
+              memory :> bytes128 (word_sub stack_pointer (word 80));
+              memory :> bytes128 (word_sub stack_pointer (word 64));
+              memory :> bytes128 (word_sub stack_pointer (word 48));
+              memory :> bytes128 (word_sub stack_pointer (word 32))] ,,
+   MAYCHANGE [memory :> bytes64 (word_sub stack_pointer (word 16))]`
+  aes_hw_xts_encrypt_clean_mc (Some xts_magic_clean) 0 1935
   `MAYCHANGE_REGS_AND_FLAGS_PERMITTED_BY_ABI ,,
    MAYCHANGE [RBP] ,,
    MAYCHANGE [memory :> bytes128 out_ptr;
-              memory :> bytes128 (word_add stack_pointer (word 0));
-              memory :> bytes128 (word_add stack_pointer (word 16));
-              memory :> bytes128 (word_add stack_pointer (word 32));
-              memory :> bytes128 (word_add stack_pointer (word 48));
-              memory :> bytes128 (word_add stack_pointer (word 64));
-              memory :> bytes128 (word_add stack_pointer (word 80));
-              memory :> bytes128 (word_add stack_pointer (word 96))]`
-  `(\s:x86state. 236)`
-  `(\s:x86state. 236)`;;
+              memory :> bytes128 (word_sub stack_pointer (word 128));
+              memory :> bytes128 (word_sub stack_pointer (word 112));
+              memory :> bytes128 (word_sub stack_pointer (word 96));
+              memory :> bytes128 (word_sub stack_pointer (word 80));
+              memory :> bytes128 (word_sub stack_pointer (word 64));
+              memory :> bytes128 (word_sub stack_pointer (word 48));
+              memory :> bytes128 (word_sub stack_pointer (word 32))] ,,
+   MAYCHANGE [memory :> bytes64 (word_sub stack_pointer (word 16))]`
+  `(\s:x86state. 242)`
+  `(\s:x86state. 242)`;;
 
 x86_print_log := true;;
 components_print_log := true;;
@@ -1981,8 +1989,8 @@ let XTS_MAGIC_CLEAN_NUM_OF_BYTELIST_BOUND = prove
 
 (* TODO: generalize, inspired by BYTES_LOADED_DATA from CURVE25519 and ED25519 proofs*)
 let BYTES128_LOADED_DATA = prove
- (`bytes_loaded s (word (pc + 2448)) xts_magic <=>
-   read (memory :> bytes128 (word (pc + 2448))) s =
+ (`bytes_loaded s (word (pc + 2480)) xts_magic <=>
+   read (memory :> bytes128 (word (pc + 2480))) s =
    (word (num_of_bytelist xts_magic)):int128`,
   REWRITE_TAC[READ_MEMORY_BYTES128_BYTES] THEN
   REWRITE_TAC[bytes_loaded; READ_BYTELIST_EQ_BYTES;
@@ -1995,8 +2003,8 @@ let BYTES128_LOADED_DATA = prove
   );;
 
 let BYTES128_LOADED_DATA_CLEAN = prove
- (`bytes_loaded s (word (pc + 2480)) xts_magic_clean <=>
-   read (memory :> bytes128 (word (pc + 2480))) s =
+ (`bytes_loaded s (word (pc + 2512)) xts_magic_clean <=>
+   read (memory :> bytes128 (word (pc + 2512))) s =
    word (num_of_bytelist xts_magic_clean)`,
   REWRITE_TAC[READ_MEMORY_BYTES128_BYTES] THEN
   REWRITE_TAC[bytes_loaded; READ_BYTELIST_EQ_BYTES;
@@ -2011,22 +2019,22 @@ let BYTES128_LOADED_DATA_CLEAN = prove
 (* TODO: Need to generalize, alignement proofs? Any inspirations? *)
 (* Q: How to think about the case when PC wraps around? *)
 let crock1 = prove
-  ( `word ((val ((word (pc + 95)):int64)) + 2353) = ((word (pc + 2448)):int64)`,
+  ( `word ((val ((word (pc + 108)):int64)) + 2372) = ((word (pc + 2480)):int64)`,
   CONV_TAC WORD_RULE
    );;
 let crock2 = prove
-  ( `word ((val ((word (pc2 + 99)):int64)) + 2381) = ((word (pc2 + 2480)):int64)`,
+  ( `word ((val ((word (pc2 + 112)):int64)) + 2400) = ((word (pc2 + 2512)):int64)`,
   CONV_TAC WORD_RULE);;
 
 let alignment_lemma1 = prove
-  (`aligned 16 ((word (pc+2448)):int64) ==>
-    aligned 16 ((word (val ((word (pc + 95)):int64)+2353)):int64)`,
+  (`aligned 16 ((word (pc+2480)):int64) ==>
+    aligned 16 ((word (val ((word (pc + 108)):int64)+2372)):int64)`,
    REWRITE_TAC[crock1]
     );;
 
 let alignment_lemma2 = prove
-  (`aligned 16 ((word (pc2+2480)):int64) ==>
-    aligned 16 ((word (val ((word (pc2 + 99)):int64)+2381)):int64)`,
+  (`aligned 16 ((word (pc2+2512)):int64) ==>
+    aligned 16 ((word (val ((word (pc2 + 112)):int64)+2400)):int64)`,
     REWRITE_TAC[crock2]);;
 
 let LENGTH_xts_magic_lemma = prove
@@ -2049,6 +2057,9 @@ my_conv `LENGTH aes_hw_xts_encrypt_clean_mc`;;
 
 
 let ADD_IMP_ASSUM_TAC lemma =
+  MP_TAC lemma THEN ANTS_TAC THENL [ASM_REWRITE_TAC[] THEN NO_TAC; STRIP_TAC];;
+
+let REWRITE_IMP_ASSUM_TAC lemma =
   MP_TAC lemma THEN ANTS_TAC THENL [ASM_REWRITE_TAC[] THEN NO_TAC; STRIP_TAC];;
 
 let ADD_ASSUM_TAC lemma =
@@ -2085,11 +2096,12 @@ let org_extra_word_conv = !extra_word_CONV;;
 (* Enable simplification of word_subwords by default *)
 extra_word_CONV := [WORD_SIMPLE_SUBWORD_CONV] @ !extra_word_CONV;;
 
-let AF_lemma = prove(
-  `forall (stack_pointer:int64).
-   ~(&(val (word_zx (word_add stack_pointer (word 120)))) - &0 =
-     &(val (word_zx (word_add stack_pointer (word 8))))) = T`,
-  CHEAT_TAC);;
+
+let stack_pointer_aligned = prove(
+  `aligned 16 (stack_pointer:int64) ==>
+   word_and (word_add stack_pointer (word 8)) (word 18446744073709551600) = stack_pointer`,
+   CHEAT_TAC
+);;
 
 let EQUIV = prove(equiv_goal,
 
@@ -2101,6 +2113,7 @@ let EQUIV = prove(equiv_goal,
   REPEAT STRIP_TAC THEN
   REWRITE_TAC[BYTES_LOADED_APPEND_CLAUSE] THEN
   REWRITE_TAC[fst AES_HW_XTS_ENCRYPT_EXEC; fst AES_HW_XTS_ENCRYPT_CLEAN_EXEC] THEN
+  (* Separate loading of constants *)
   REWRITE_TAC[BYTES128_LOADED_DATA; BYTES128_LOADED_DATA_CLEAN] THEN
 
   (** Initialize **)
@@ -2110,12 +2123,14 @@ let EQUIV = prove(equiv_goal,
    with Failure _ -> ALL_TAC) THEN
   REPEAT STRIP_TAC THEN
   (* TODO: use DISCARD_MATCHING_ASSUMPTIONS to remove original assumptions *)
+  (* Shift the stackpointer by 128 bytes to avoid subtraction *)
   REPEAT(POP_ASSUM MP_TAC) THEN
   SPEC_TAC (`stack_pointer:int64`, `stack_pointer:int64`) THEN
   WORD_FORALL_OFFSET_TAC 128 THEN
   CONV_TAC(ONCE_DEPTH_CONV NORMALIZE_RELATIVE_ADDRESS_CONV) THEN
   REPEAT STRIP_TAC THEN
 
+  (* TODO: add these lemmas in place *)
   ADD_IMP_ASSUM_TAC alignment_lemma1 THEN
   ADD_IMP_ASSUM_TAC alignment_lemma2 THEN
   ADD_ASSUM_TAC crock1 THEN
@@ -2127,101 +2142,107 @@ let EQUIV = prove(equiv_goal,
     ("replace", 1,3,1,3);
   ] AES_HW_XTS_ENCRYPT_EXEC AES_HW_XTS_ENCRYPT_CLEAN_EXEC THEN
   EQUIV_STEPS_TAC [
-    ("replace", 3,4,3,4);
-    (* ("replace", 4,5,4,5); *)
+    ("replace", 3,5,3,5);
   ] AES_HW_XTS_ENCRYPT_EXEC AES_HW_XTS_ENCRYPT_CLEAN_EXEC THEN
-  (*TODO: for some reason the following didn't work...*)
-  RULE_ASSUM_TAC(REWRITE_RULE[AF_lemma]) THEN
+  (* Clean up stack_pointer expression *)
+  MP_TAC stack_pointer_aligned THEN ANTS_TAC THENL
+  [ASM_REWRITE_TAC[] THEN NO_TAC;
+   DISCH_THEN(fun th -> RULE_ASSUM_TAC(REWRITE_RULE[th]))] THEN
 
   EQUIV_STEPS_TAC [
-    ("equal",0,2,0,2);
-    ("replace",2,4,2,4);
-    ("equal",4,6,4,6);
-    ("replace",6,7,6,7);
-    ("equal",7,8,7,8);
+    ("equal",5,6,5,6);
+    ("replace",6,8,6,8);
+    ("equal",8,10,8,10);
+    ("replace",10,11,10,11);
+    ("equal",11,12,11,12);
   ] AES_HW_XTS_ENCRYPT_EXEC AES_HW_XTS_ENCRYPT_CLEAN_EXEC THEN
   RULE_ASSUM_TAC (CONV_RULE (TOP_DEPTH_CONV WORD_SIMPLE_SUBWORD_CONV)) THEN
   (* .Loop_enc1_6 *)
-  AESENC_TAC (8,68) THEN
+  AESENC_TAC (12,72) THEN
   EQUIV_STEPS_TAC [
-    ("equal",73,76,73,76);
-    ("replace",76,80,76,80);
+    ("equal",77,80,77,80);
+    ("replace",80,84,80,84);
   ] AES_HW_XTS_ENCRYPT_EXEC AES_HW_XTS_ENCRYPT_CLEAN_EXEC THEN
   RULE_ASSUM_TAC (CONV_RULE (TOP_DEPTH_CONV WORD_SIMPLE_SUBWORD_CONV)) THEN
   EQUIV_STEPS_TAC [
-    ("equal",80,81,80,81);
+    ("equal",84,85,84,85);
   ] AES_HW_XTS_ENCRYPT_EXEC AES_HW_XTS_ENCRYPT_CLEAN_EXEC THEN
   RULE_ASSUM_TAC (CONV_RULE (TOP_DEPTH_CONV WORD_SIMPLE_SUBWORD_CONV)) THEN
   EQUIV_STEPS_TAC [
-    ("replace",81,85,81,85);
+    ("replace",85,89,85,89);
   ] AES_HW_XTS_ENCRYPT_EXEC AES_HW_XTS_ENCRYPT_CLEAN_EXEC THEN
   RULE_ASSUM_TAC (CONV_RULE (TOP_DEPTH_CONV WORD_SIMPLE_SUBWORD_CONV)) THEN
   FORCE_READ_EQ_TAC `YMM1` THEN
   FORCE_READ_EQ_TAC `YMM8` THEN FORCE_READ_EQ_TAC `YMM9` THEN
 
-  TWEAK_TAC 85 `YMM10` THEN
-  TWEAK_TAC 93 `YMM11` THEN
-  TWEAK_TAC 101 `YMM12` THEN
-  TWEAK_TAC 109 `YMM13` THEN
-  TWEAK_LAST_TAC 117 `YMM14` THEN
+  TWEAK_TAC 89 `YMM10` THEN
+  TWEAK_TAC 97 `YMM11` THEN
+  TWEAK_TAC 105 `YMM12` THEN
+  TWEAK_TAC 113 `YMM13` THEN
+  TWEAK_LAST_TAC 121 `YMM14` THEN
 
   EQUIV_STEPS_TAC [
-    ("equal",123,124,123,124);
+    ("equal",127,128,127,128);
   ] AES_HW_XTS_ENCRYPT_EXEC AES_HW_XTS_ENCRYPT_CLEAN_EXEC THEN
   RULE_ASSUM_TAC (CONV_RULE (TOP_DEPTH_CONV WORD_SIMPLE_SUBWORD_CONV)) THEN
   EQUIV_STEPS_TAC [
-    ("replace",124,126,124,126);
+    ("replace",128,130,128,130);
   ] AES_HW_XTS_ENCRYPT_EXEC AES_HW_XTS_ENCRYPT_CLEAN_EXEC THEN
   RULE_ASSUM_TAC (CONV_RULE (TOP_DEPTH_CONV WORD_SIMPLE_SUBWORD_CONV)) THEN
 
   (* .Lxts_enc_short *)
   EQUIV_STEPS_TAC [
-    ("replace",126,127,126,127);
-    ("equal",127,128,127,128);
-    ("replace",128,130,128,130);
-    ("equal",130,131,130,131);
-    ("replace",131,133,131,133);
+    ("replace",130,131,130,131);
+    ("equal",131,132,131,132);
+    ("replace",132,134,132,134);
+    ("equal",134,135,134,135);
+    ("replace",135,137,135,137);
   ] AES_HW_XTS_ENCRYPT_EXEC AES_HW_XTS_ENCRYPT_CLEAN_EXEC THEN
   RULE_ASSUM_TAC (CONV_RULE (TOP_DEPTH_CONV WORD_SIMPLE_SUBWORD_CONV)) THEN
   (* .Lxts_enc_one *)
   EQUIV_STEPS_TAC [
-    ("replace",133,135,133,135);
+    ("replace",137,139,137,139);
   ] AES_HW_XTS_ENCRYPT_EXEC AES_HW_XTS_ENCRYPT_CLEAN_EXEC THEN
   RULE_ASSUM_TAC (CONV_RULE (TOP_DEPTH_CONV WORD_SIMPLE_SUBWORD_CONV)) THEN
   FORCE_READ_EQ_TAC `RDI` THEN
   EQUIV_STEPS_TAC [
-    ("equal",135,136,135,136);
+    ("equal",139,140,139,140);
   ] AES_HW_XTS_ENCRYPT_EXEC AES_HW_XTS_ENCRYPT_CLEAN_EXEC THEN
   RULE_ASSUM_TAC (CONV_RULE (TOP_DEPTH_CONV WORD_SIMPLE_SUBWORD_CONV)) THEN
 
   EQUIV_STEPS_TAC [
-    ("equal",136,138,136,138);
-    ("replace",138,139,138,139);
-    ("equal",139,140,139,140);
+    ("equal",140,142,140,142);
+    ("replace",142,143,142,143);
+    ("equal",143,144,143,144);
   ] AES_HW_XTS_ENCRYPT_EXEC AES_HW_XTS_ENCRYPT_CLEAN_EXEC THEN
   RULE_ASSUM_TAC (CONV_RULE (TOP_DEPTH_CONV WORD_SIMPLE_SUBWORD_CONV)) THEN
-  AESENC_TAC (140,200) THEN
+  AESENC_TAC (144,204) THEN
   EQUIV_STEPS_TAC [
-    ("equal",205,209,205,209);
-    ("replace",209,211,209,211);
+    ("equal",209,213,209,213);
+    ("replace",213,215,213,215);
   ] AES_HW_XTS_ENCRYPT_EXEC AES_HW_XTS_ENCRYPT_CLEAN_EXEC THEN
   RULE_ASSUM_TAC (CONV_RULE (TOP_DEPTH_CONV WORD_SIMPLE_SUBWORD_CONV)) THEN
   (* .Lxts_enc_done *)
   EQUIV_STEPS_TAC [
-    ("replace",211,213,211,213);
+    ("replace",215,217,215,217);
   ] AES_HW_XTS_ENCRYPT_EXEC AES_HW_XTS_ENCRYPT_CLEAN_EXEC THEN
   RULE_ASSUM_TAC (CONV_RULE (TOP_DEPTH_CONV WORD_SIMPLE_SUBWORD_CONV)) THEN
   (* .Lxts_enc_ret *)
   EQUIV_STEPS_TAC [
-    ("replace",213,221,213,221);
+    ("replace",217,225,217,225);
   ] AES_HW_XTS_ENCRYPT_EXEC AES_HW_XTS_ENCRYPT_CLEAN_EXEC THEN
   RULE_ASSUM_TAC (CONV_RULE (TOP_DEPTH_CONV WORD_SIMPLE_SUBWORD_CONV)) THEN
 
   EQUIV_STEPS_TAC [
-    ("replace", 221,236,221,236);
+    ("replace", 225,242,225,242);
   ] AES_HW_XTS_ENCRYPT_EXEC AES_HW_XTS_ENCRYPT_CLEAN_EXEC THEN
   RULE_ASSUM_TAC (CONV_RULE (TOP_DEPTH_CONV WORD_SIMPLE_SUBWORD_CONV)) THEN
   (* TODO: handle return later *)
+  (* EQUIV_STEPS_TAC [
+    ("replace", 242,243,242,243);
+  ] AES_HW_XTS_ENCRYPT_EXEC AES_HW_XTS_ENCRYPT_CLEAN_EXEC THEN
+  RULE_ASSUM_TAC (CONV_RULE (TOP_DEPTH_CONV WORD_SIMPLE_SUBWORD_CONV)) THEN
+   *)
 
   REPEAT_N 2 ENSURES_N_FINAL_STATE_TAC THEN
   ASM_REWRITE_TAC[] THEN
