@@ -156,17 +156,30 @@ let X86_N_BASIC_STEP_TAC =
   fun decode_th sname store_inst_term_to (asl,w) ->
     (* w = `eventually_n _ {stepn} _ {sv}` *)
     let sv = rand w and sv' = mk_var(sname,x86_ty) in
+    let _ = print_string "X86_N_BASIC_STEP_TAC: sv\n" in
     let _ = print_term sv in
+    let _ = print_string "\n" in
     let atm = mk_comb(mk_comb(x86_tm,sv),sv') in
+    let _ = print_string "X86_N_BASIC_STEP_TAC: atm\n" in
     let _ = print_term atm in
+    let _ = print_string "\n" in
     let eth = X86_CONV decode_th (map snd asl) atm in
+    let _ = print_string "X86_N_BASIC_STEP_TAC: eth\n" in
     let _ = print_thm eth in
+    let _ = print_string "\n" in
     (* store the decoded instruction at store_inst_term_to *)
     (match store_inst_term_to with | Some r -> r := rhs (concl eth) | None -> ());
+    let _ = print_string "before stepn\n" in
+    let _ = print_term w in
+    let _ = print_term (rand(rator(rator w))) in
     let stepn = dest_numeral(rand(rator(rator w))) in
+    let _ = print_num stepn in
+    let _ = print_string "\n" in
     let stepn_decr = stepn -/ num 1 in
+    let _ = print_string "aaaaaaaa" in
     (* stepn = 1+{stepn-1}*)
     let stepn_thm = GSYM (NUM_ADD_CONV (mk_binary "+" (one,mk_numeral(stepn_decr)))) in
+    let _ = print_string "bbbbbbbbb" in
     (GEN_REWRITE_TAC (RATOR_CONV o RATOR_CONV o RAND_CONV) [stepn_thm] THEN
       GEN_REWRITE_TAC I [EVENTUALLY_N_STEP] THEN CONJ_TAC THENL
      [GEN_REWRITE_TAC BINDER_CONV [eth] THEN

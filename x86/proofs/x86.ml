@@ -2886,6 +2886,7 @@ let X86_CONV (decode_ths:thm option array) ths tm =
       GEN_REWRITE_CONV I [X86_THM decode_ths loaded_mc_th pc_th] tm)
     bytes_loaded_mc_ths in
   (K eth THENC
+   PRINT_TERM_CONV THENC
    REWRITE_CONV[X86_EXECUTE] THENC
    ONCE_DEPTH_CONV OPERAND_SIZE_CONV THENC
    REWRITE_CONV[condition_semantics; aligned_OPERAND128] THENC
