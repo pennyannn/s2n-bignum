@@ -1901,7 +1901,6 @@ let equiv_goal = mk_equiv_statement
   aes_hw_xts_encrypt_mc (Some xts_magic) 0 1903
   (* TODO: currently RBP is being used *)
   `MAYCHANGE_REGS_AND_FLAGS_PERMITTED_BY_ABI ,,
-   MAYCHANGE [RBP] ,,
    MAYCHANGE [memory :> bytes128 out_ptr;
               memory :> bytes128 (word_sub stack_pointer (word 128));
               memory :> bytes128 (word_sub stack_pointer (word 112));
@@ -1913,7 +1912,6 @@ let equiv_goal = mk_equiv_statement
    MAYCHANGE [memory :> bytes64 (word_sub stack_pointer (word 16))]`
   aes_hw_xts_encrypt_clean_mc (Some xts_magic_clean) 0 1935
   `MAYCHANGE_REGS_AND_FLAGS_PERMITTED_BY_ABI ,,
-   MAYCHANGE [RBP] ,,
    MAYCHANGE [memory :> bytes128 out_ptr;
               memory :> bytes128 (word_sub stack_pointer (word 128));
               memory :> bytes128 (word_sub stack_pointer (word 112));
@@ -2111,6 +2109,7 @@ let EQUIV = prove(equiv_goal,
               fst AES_HW_XTS_ENCRYPT_CLEAN_EXEC;LENGTH_xts_magic_clean_lemma] THEN
   CONV_TAC (ONCE_DEPTH_CONV NUM_ADD_CONV) THEN
   REPEAT STRIP_TAC THEN
+  ENSURES_EXISTING_PRESERVED_TAC `RBP` THEN
   REWRITE_TAC[BYTES_LOADED_APPEND_CLAUSE] THEN
   REWRITE_TAC[fst AES_HW_XTS_ENCRYPT_EXEC; fst AES_HW_XTS_ENCRYPT_CLEAN_EXEC] THEN
   (* Separate loading of constants *)
