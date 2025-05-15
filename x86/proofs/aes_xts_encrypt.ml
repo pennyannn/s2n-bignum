@@ -5,8 +5,8 @@
 
 needs "x86/proofs/equiv.ml";;
 
-print_coda_from_elf 0x990 "x86/aes-xts/aes_hw_xts_encrypt.o";;
-print_coda_from_elf 0x9b0 "x86/aes-xts/aes_hw_xts_encrypt_clean.o";;
+print_coda_from_elf 0x9b0 "x86/aes-xts/aes_hw_xts_encrypt.o";;
+print_coda_from_elf 0x9d0 "x86/aes-xts/aes_hw_xts_encrypt_clean.o";;
 
 let aes_hw_xts_encrypt_mc, xts_magic =
   define_coda_literal_from_elf
@@ -14,6 +14,10 @@ let aes_hw_xts_encrypt_mc, xts_magic =
   "x86/aes-xts/aes_hw_xts_encrypt.o"
   [
   0xf3; 0x0f; 0x1e; 0xfa;  (* ENDBR64 *)
+  0x4c; 0x8d; 0x1c; 0x24;  (* LEA (% r11) (%% (rsp,0)) *)
+  0x55;                    (* PUSH (% rbp) *)
+  0x48; 0x83; 0xec; 0x70;  (* SUB (% rsp) (Imm8 (word 112)) *)
+  0x48; 0x83; 0xe4; 0xf0;  (* AND (% rsp) (Imm8 (word 240)) *)
   0x41; 0x0f; 0x10; 0x11;  (* MOVUPS (%_% xmm2) (Memop Word128 (%% (r9,0))) *)
   0x41; 0x8b; 0x80; 0xf0; 0x00; 0x00; 0x00;
                            (* MOV (% eax) (Memop Doubleword (%% (r8,240))) *)
@@ -40,8 +44,8 @@ let aes_hw_xts_encrypt_mc, xts_magic =
   0x48; 0x83; 0xe2; 0xf0;  (* AND (% rdx) (Imm8 (word 240)) *)
   0x42; 0x0f; 0x10; 0x4c; 0x11; 0x10;
                            (* MOVUPS (%_% xmm1) (Memop Word128 (%%%% (rcx,0,r10,&16))) *)
-  0x66; 0x44; 0x0f; 0x6f; 0x05; 0x31; 0x09; 0x00; 0x00;
-                           (* MOVDQA (%_% xmm8) (Memop Word128 (Riprel (word 2353))) *)
+  0x66; 0x44; 0x0f; 0x6f; 0x05; 0x44; 0x09; 0x00; 0x00;
+                           (* MOVDQA (%_% xmm8) (Memop Word128 (Riprel (word 2372))) *)
   0x66; 0x44; 0x0f; 0x6f; 0xfa;
                            (* MOVDQA (%_% xmm15) (%_% xmm2) *)
   0x66; 0x44; 0x0f; 0x70; 0xca; 0x5f;
@@ -126,8 +130,8 @@ let aes_hw_xts_encrypt_mc, xts_magic =
   0x0f; 0x29; 0x4c; 0x24; 0x60;
                            (* MOVAPS (Memop Word128 (%% (rsp,96))) (%_% xmm1) *)
   0x48; 0x83; 0xea; 0x60;  (* SUB (% rdx) (Imm8 (word 96)) *)
-  0x0f; 0x82; 0x40; 0x03; 0x00; 0x00;
-                           (* JB (Imm32 (word 832)) *)
+  0x0f; 0x82; 0x53; 0x03; 0x00; 0x00;
+                           (* JB (Imm32 (word 851)) *)
   0xb8; 0x70; 0x00; 0x00; 0x00;
                            (* MOV (% eax) (Imm32 (word 112)) *)
   0x4a; 0x8d; 0x4c; 0x15; 0x20;
@@ -135,10 +139,13 @@ let aes_hw_xts_encrypt_mc, xts_magic =
   0x4c; 0x29; 0xd0;        (* SUB (% rax) (% r10) *)
   0x0f; 0x10; 0x4d; 0x10;  (* MOVUPS (%_% xmm1) (Memop Word128 (%% (rbp,16))) *)
   0x49; 0x89; 0xc2;        (* MOV (% r10) (% rax) *)
-  0x4c; 0x8d; 0x05; 0x35; 0x08; 0x00; 0x00;
-                           (* LEA (% r8) (Riprel (word 2101)) *)
-  0xeb; 0x03;              (* JMP (Imm8 (word 3)) *)
-  0x0f; 0x1f; 0x00;        (* NOP_N (Memop Doubleword (%% (rax,0))) *)
+  0x4c; 0x8d; 0x05; 0x48; 0x08; 0x00; 0x00;
+                           (* LEA (% r8) (Riprel (word 2120)) *)
+  0xeb; 0x16;              (* JMP (Imm8 (word 22)) *)
+  0x66; 0x66; 0x2e; 0x0f; 0x1f; 0x84; 0x00; 0x00; 0x00; 0x00; 0x00;
+                           (* NOP_N (Memop Word (%%% (rax,0,rax))) *)
+  0x66; 0x66; 0x2e; 0x0f; 0x1f; 0x84; 0x00; 0x00; 0x00; 0x00; 0x00;
+                           (* NOP_N (Memop Word (%%% (rax,0,rax))) *)
   0xf3; 0x0f; 0x6f; 0x17;  (* MOVDQU (%_% xmm2) (Memop Word128 (%% (rdi,0))) *)
   0x66; 0x44; 0x0f; 0x6f; 0xc0;
                            (* MOVDQA (%_% xmm8) (%_% xmm0) *)
@@ -663,9 +670,9 @@ let aes_hw_xts_encrypt_mc, xts_magic =
                            (* PXOR (%_% xmm14) (%_% xmm14) *)
   0x66; 0x45; 0x0f; 0xef; 0xff;
                            (* PXOR (%_% xmm15) (%_% xmm15) *)
+  0x49; 0x8b; 0x6b; 0xf8;  (* MOV (% rbp) (Memop Quadword (%% (r11,18446744073709551608))) *)
+  0x49; 0x8d; 0x23;        (* LEA (% rsp) (%% (r11,0)) *)
   0xc3;                    (* RET *)
-  0x0f; 0x1f; 0x80; 0x00; 0x00; 0x00; 0x00;
-                           (* NOP_N (Memop Doubleword (%% (rax,0))) *)
   0x0f; 0x10; 0x01;        (* MOVUPS (%_% xmm0) (Memop Word128 (%% (rcx,0))) *)
   0xc1; 0xe0; 0x04;        (* SHL (% eax) (Imm8 (word 4)) *)
   0x0f; 0x10; 0x49; 0x10;  (* MOVUPS (%_% xmm1) (Memop Word128 (%% (rcx,16))) *)
@@ -884,6 +891,10 @@ let aes_hw_xts_encrypt_clean_mc, xts_magic_clean =
   "x86/aes-xts/aes_hw_xts_encrypt_clean.o"
   [
   0xf3; 0x0f; 0x1e; 0xfa;  (* ENDBR64 *)
+  0x4c; 0x8d; 0x1c; 0x24;  (* LEA (% r11) (%% (rsp,0)) *)
+  0x55;                    (* PUSH (% rbp) *)
+  0x48; 0x83; 0xec; 0x70;  (* SUB (% rsp) (Imm8 (word 112)) *)
+  0x48; 0x83; 0xe4; 0xf0;  (* AND (% rsp) (Imm8 (word 240)) *)
   0x41; 0x0f; 0x10; 0x11;  (* MOVUPS (%_% xmm2) (Memop Word128 (%% (r9,0))) *)
   0x41; 0x8b; 0x80; 0xf0; 0x00; 0x00; 0x00;
                            (* MOV (% eax) (Memop Doubleword (%% (r8,240))) *)
@@ -911,8 +922,8 @@ let aes_hw_xts_encrypt_clean_mc, xts_magic_clean =
   0x42; 0x0f; 0x10; 0x4c; 0x11; 0x10;
                            (* MOVUPS (%_% xmm1) (Memop Word128 (%%%% (rcx,0,r10,&16))) *)
   0x66; 0x0f; 0xef; 0xc8;  (* PXOR (%_% xmm1) (%_% xmm0) *)
-  0x66; 0x44; 0x0f; 0x6f; 0x05; 0x4d; 0x09; 0x00; 0x00;
-                           (* MOVDQA (%_% xmm8) (Memop Word128 (Riprel (word 2381))) *)
+  0x66; 0x44; 0x0f; 0x6f; 0x05; 0x60; 0x09; 0x00; 0x00;
+                           (* MOVDQA (%_% xmm8) (Memop Word128 (Riprel (word 2400))) *)
   0x66; 0x44; 0x0f; 0x6f; 0xfa;
                            (* MOVDQA (%_% xmm15) (%_% xmm2) *)
   0x66; 0x44; 0x0f; 0x70; 0xca; 0x5f;
@@ -996,8 +1007,8 @@ let aes_hw_xts_encrypt_clean_mc, xts_magic_clean =
   0x0f; 0x29; 0x4c; 0x24; 0x60;
                            (* MOVAPS (Memop Word128 (%% (rsp,96))) (%_% xmm1) *)
   0x48; 0x83; 0xea; 0x60;  (* SUB (% rdx) (Imm8 (word 96)) *)
-  0x0f; 0x82; 0x5e; 0x03; 0x00; 0x00;
-                           (* JB (Imm32 (word 862)) *)
+  0x0f; 0x82; 0x71; 0x03; 0x00; 0x00;
+                           (* JB (Imm32 (word 881)) *)
   0xb8; 0x70; 0x00; 0x00; 0x00;
                            (* MOV (% eax) (Imm32 (word 112)) *)
   0x4a; 0x8d; 0x4c; 0x15; 0x20;
@@ -1005,10 +1016,13 @@ let aes_hw_xts_encrypt_clean_mc, xts_magic_clean =
   0x4c; 0x29; 0xd0;        (* SUB (% rax) (% r10) *)
   0x49; 0x89; 0xc2;        (* MOV (% r10) (% rax) *)
   0x0f; 0x10; 0x4d; 0x10;  (* MOVUPS (%_% xmm1) (Memop Word128 (%% (rbp,16))) *)
-  0x4c; 0x8d; 0x05; 0x55; 0x08; 0x00; 0x00;
-                           (* LEA (% r8) (Riprel (word 2133)) *)
-  0xeb; 0x03;              (* JMP (Imm8 (word 3)) *)
-  0x0f; 0x1f; 0x00;        (* NOP_N (Memop Doubleword (%% (rax,0))) *)
+  0x4c; 0x8d; 0x05; 0x68; 0x08; 0x00; 0x00;
+                           (* LEA (% r8) (Riprel (word 2152)) *)
+  0xeb; 0x16;              (* JMP (Imm8 (word 22)) *)
+  0x66; 0x66; 0x2e; 0x0f; 0x1f; 0x84; 0x00; 0x00; 0x00; 0x00; 0x00;
+                           (* NOP_N (Memop Word (%%% (rax,0,rax))) *)
+  0x66; 0x66; 0x2e; 0x0f; 0x1f; 0x84; 0x00; 0x00; 0x00; 0x00; 0x00;
+                           (* NOP_N (Memop Word (%%% (rax,0,rax))) *)
   0xf3; 0x0f; 0x6f; 0x17;  (* MOVDQU (%_% xmm2) (Memop Word128 (%% (rdi,0))) *)
   0xf3; 0x0f; 0x6f; 0x5f; 0x10;
                            (* MOVDQU (%_% xmm3) (Memop Word128 (%% (rdi,16))) *)
@@ -1539,9 +1553,9 @@ let aes_hw_xts_encrypt_clean_mc, xts_magic_clean =
                            (* MOVAPS (Memop Word128 (%% (rsp,80))) (%_% xmm0) *)
   0x0f; 0x29; 0x44; 0x24; 0x60;
                            (* MOVAPS (Memop Word128 (%% (rsp,96))) (%_% xmm0) *)
+  0x49; 0x8b; 0x6b; 0xf8;  (* MOV (% rbp) (Memop Quadword (%% (r11,18446744073709551608))) *)
+  0x49; 0x8d; 0x23;        (* LEA (% rsp) (%% (r11,0)) *)
   0xc3;                    (* RET *)
-  0x0f; 0x1f; 0x80; 0x00; 0x00; 0x00; 0x00;
-                           (* NOP_N (Memop Doubleword (%% (rax,0))) *)
   0xc1; 0xe0; 0x04;        (* SHL (% eax) (Imm8 (word 4)) *)
   0x0f; 0x10; 0x01;        (* MOVUPS (%_% xmm0) (Memop Word128 (%% (rcx,0))) *)
   0x0f; 0x10; 0x49; 0x10;  (* MOVUPS (%_% xmm1) (Memop Word128 (%% (rcx,16))) *)
@@ -1815,17 +1829,31 @@ let ghost_ymms = new_definition
     read YMM15 s = y15
   )`;;
 
-(* TODO: Currently assuming just one block *)
+(* TODO: read more about define and well-foundedness *)
+let data_block_equiv = define
+  `(data_block_equiv:(x86state#x86state)->int64->num->bool)
+      (s1,s1') in_ptr len <=>
+      if len < 16 then
+        (exists n.
+          read (memory :> bytes(in_ptr,len)) s1 = n /\
+          read (memory :> bytes(in_ptr,len)) s1' = n)
+      else
+        (exists n.
+          read (memory :> bytes128 in_ptr) s1 = n /\
+          read (memory :> bytes128 in_ptr) s1' = n) /\
+        (data_block_equiv (s1,s1') (word_add in_ptr (word 16)) (len - 16))`;;
+
 let aes_xts_eqin = new_definition
-  `forall s1 s1' in_ptr out_ptr key1_ptr key2_ptr iv_ptr stack_pointer.
-    (aes_xts_eqin:(x86state#x86state)->int64->int64->int64->int64->int64->int64->bool)
-      (s1,s1') in_ptr out_ptr key1_ptr key2_ptr iv_ptr stack_pointer<=>
+  `forall s1 s1' in_ptr out_ptr key1_ptr key2_ptr iv_ptr r1 len stack_pointer.
+    (aes_xts_eqin:(x86state#x86state)->int64->int64->int64->int64->int64->int64->int64->int64->bool)
+      (s1,s1') in_ptr out_ptr key1_ptr key2_ptr iv_ptr r1 len stack_pointer<=>
      (read RDI s1 = in_ptr /\
       read RDI s1' = in_ptr /\
       read RSI s1 = out_ptr /\
       read RSI s1' = out_ptr /\
-      read RDX s1 = word 16 /\
-      read RDX s1' = word 16 /\
+      val len >= 0 /\
+      read RDX s1 = len /\
+      read RDX s1' = len /\
       read RSP s1 = stack_pointer /\
       read RSP s1' = stack_pointer /\
       read RCX s1 = key1_ptr /\
@@ -1834,10 +1862,8 @@ let aes_xts_eqin = new_definition
       read R8 s1' = key2_ptr /\
       read R9 s1 = iv_ptr /\
       read R9 s1' = iv_ptr /\
-      // Memory equivalence at in_ptr for 16-bytes (one block)
-      (exists n.
-        read (memory :> bytes128 in_ptr) s1 = n /\
-        read (memory :> bytes128 in_ptr) s1' = n) /\
+      // Memory equivalence at in_ptr for len bytes
+      (data_block_equiv (s1,s1') in_ptr (val len)) /\
       // Key1 equivalence
       (key_schedule_equiv (s1,s1') key1_ptr) /\
       // Key2 equivalence
@@ -1851,55 +1877,53 @@ let aes_xts_eqin = new_definition
       )`;;
 
 let aes_xts_eqout = new_definition
-  `forall s1 s1' out_ptr.
-    (aes_xts_eqout:(x86state#x86state)->int64->bool) (s1,s1') out_ptr <=>
+  `forall s1 s1' r1 len out_ptr.
+    (aes_xts_eqout:(x86state#x86state)->int64->int64->int64->bool)
+      (s1,s1') r1 len out_ptr <=>
      (read RSI s1 = word_add out_ptr (word 16)  /\
       read RSI s1' = word_add out_ptr (word 16) /\
-      (exists n.
-        read (memory :> bytes128 out_ptr) s1 = n /\
-        read (memory :> bytes128 out_ptr) s1' = n))`;;
+      data_block_equiv (s1,s1') out_ptr (val len))`;;
 
-(* TODO: need to figure out about pc_ofs1/2_to *)
+(* TODO: need to figure out about pc_ofs1/2_to and the step number *)
 let equiv_goal = mk_equiv_statement
   `ALL (nonoverlapping (stack_pointer,128))
   [word pc,LENGTH (APPEND aes_hw_xts_encrypt_mc xts_magic);
    word pc2,LENGTH (APPEND aes_hw_xts_encrypt_clean_mc xts_magic_clean);
-   in_ptr:int64,16; iv_ptr:int64,16; key1_ptr:int64,244; key2_ptr:int64,244] /\
-  ALL (nonoverlapping (out_ptr,16))
+   in_ptr:int64,val (len:int64); iv_ptr:int64,16; key1_ptr:int64,244; key2_ptr:int64,244] /\
+  ALL (nonoverlapping (out_ptr,(val len)))
   [word pc,LENGTH (APPEND aes_hw_xts_encrypt_mc xts_magic);
    word pc2,LENGTH (APPEND aes_hw_xts_encrypt_clean_mc xts_magic_clean);
-   stack_pointer,128; in_ptr,16; iv_ptr,16; key1_ptr,244; key2_ptr,244] /\
+   stack_pointer,128; in_ptr,(val len); iv_ptr,16; key1_ptr,244; key2_ptr,244] /\
   aligned 16 stack_pointer /\
-  aligned 16 (word (pc + 2448):int64) /\
-  aligned 16 (word (pc2 + 2480):int64)`
+  aligned 16 (word (pc + 2480):int64) /\
+  aligned 16 (word (pc2 + 2512):int64)`
   (* the above two alignments are for constant value xts_magic *)
   aes_xts_eqin
   aes_xts_eqout
-  aes_hw_xts_encrypt_mc (Some xts_magic) 0 1864
-  (* TODO: currently RBP is being used *)
+  aes_hw_xts_encrypt_mc (Some xts_magic) 17 1903
   `MAYCHANGE_REGS_AND_FLAGS_PERMITTED_BY_ABI ,,
-   MAYCHANGE [RBP] ,,
-   MAYCHANGE [memory :> bytes128 out_ptr;
-              memory :> bytes128 (word_add stack_pointer (word 0));
+   MAYCHANGE [memory :> bytes(out_ptr,val (len:int64))] ,,
+   MAYCHANGE [memory :> bytes128 stack_pointer;
               memory :> bytes128 (word_add stack_pointer (word 16));
               memory :> bytes128 (word_add stack_pointer (word 32));
               memory :> bytes128 (word_add stack_pointer (word 48));
               memory :> bytes128 (word_add stack_pointer (word 64));
               memory :> bytes128 (word_add stack_pointer (word 80));
-              memory :> bytes128 (word_add stack_pointer (word 96))]`
-  aes_hw_xts_encrypt_clean_mc (Some xts_magic_clean) 0 1896
+              memory :> bytes128 (word_add stack_pointer (word 96))] ,,
+   MAYCHANGE [RSP; RBP]`
+  aes_hw_xts_encrypt_clean_mc (Some xts_magic_clean) 17 1935
   `MAYCHANGE_REGS_AND_FLAGS_PERMITTED_BY_ABI ,,
-   MAYCHANGE [RBP] ,,
-   MAYCHANGE [memory :> bytes128 out_ptr;
-              memory :> bytes128 (word_add stack_pointer (word 0));
+   MAYCHANGE [memory :> bytes(out_ptr,val (len:int64))] ,,
+   MAYCHANGE [memory :> bytes128 stack_pointer;
               memory :> bytes128 (word_add stack_pointer (word 16));
               memory :> bytes128 (word_add stack_pointer (word 32));
               memory :> bytes128 (word_add stack_pointer (word 48));
               memory :> bytes128 (word_add stack_pointer (word 64));
               memory :> bytes128 (word_add stack_pointer (word 80));
-              memory :> bytes128 (word_add stack_pointer (word 96))]`
-  `(\s:x86state. 236)`
-  `(\s:x86state. 236)`;;
+              memory :> bytes128 (word_add stack_pointer (word 96))] ,,
+   MAYCHANGE [RSP; RBP]`
+  `(\s:x86state. 237)`
+  `(\s:x86state. 237)`;;
 
 x86_print_log := true;;
 components_print_log := true;;
@@ -1917,7 +1941,7 @@ let AESENC_TAC (k,q) =
     ((k -- q) |> List.filter (fun x -> (x - k) mod 5 = 0));;
 
 (* TODO: Need to generalize, inspired by BIGNUM_FROM_MEMORY_BOUND *)
-let crock3 = prove
+let MEMORY_BYTES_BOUND = prove
   (`read (memory :> bytes (x,16)) s < 2 EXP dimindex (:128)`,
   REWRITE_TAC[READ_COMPONENT_COMPOSE; DIMINDEX_128] THEN
   SUBST1_TAC(ARITH_RULE `128 = 8 * 16`) THEN REWRITE_TAC[READ_BYTES_BOUND]
@@ -1942,11 +1966,11 @@ let READ_MEMORY_BYTES128_BYTES = prove(`!z s.
   ONCE_REWRITE_TAC[GSYM VAL_EQ] THEN
   IMP_REWRITE_TAC [VAL_WORD_EQ] THEN
   CONJ_TAC THENL [REWRITE_TAC [READ_MEMORY_BYTES_BYTES128]; ALL_TAC] THEN
-  REWRITE_TAC [crock3]
+  REWRITE_TAC [MEMORY_BYTES_BOUND]
   );;
 
 (* TODO: need to generalize, use NUM_OF_BYTELIST_BOUND *)
-let crock4 = prove
+let XTS_MAGIC_NUM_OF_BYTELIST_BOUND = prove
   (`num_of_bytelist xts_magic < 2 EXP dimindex (:128)`,
     TRANS_TAC LTE_TRANS `256 EXP (LENGTH xts_magic):num` THEN
     CONJ_TAC THEN REWRITE_TAC [NUM_OF_BYTELIST_BOUND] THEN
@@ -1954,7 +1978,7 @@ let crock4 = prove
     REWRITE_TAC [DIMINDEX_128] THEN ARITH_TAC
   );;
 
-let crock5 = prove
+let XTS_MAGIC_CLEAN_NUM_OF_BYTELIST_BOUND = prove
   (`num_of_bytelist xts_magic_clean < 2 EXP dimindex (:128)`,
     TRANS_TAC LTE_TRANS `256 EXP (LENGTH xts_magic_clean):num` THEN
     CONJ_TAC THEN REWRITE_TAC [NUM_OF_BYTELIST_BOUND] THEN
@@ -1964,8 +1988,8 @@ let crock5 = prove
 
 (* TODO: generalize, inspired by BYTES_LOADED_DATA from CURVE25519 and ED25519 proofs*)
 let BYTES128_LOADED_DATA = prove
- (`bytes_loaded s (word (pc + 2448)) xts_magic <=>
-   read (memory :> bytes128 (word (pc + 2448))) s =
+ (`bytes_loaded s (word (pc + 2480)) xts_magic <=>
+   read (memory :> bytes128 (word (pc + 2480))) s =
    (word (num_of_bytelist xts_magic)):int128`,
   REWRITE_TAC[READ_MEMORY_BYTES128_BYTES] THEN
   REWRITE_TAC[bytes_loaded; READ_BYTELIST_EQ_BYTES;
@@ -1973,12 +1997,13 @@ let BYTES128_LOADED_DATA = prove
      (AP_TERM `LENGTH:byte list->num` xts_magic)] THEN
   CONV_TAC SYM_CONV THEN
   MATCH_MP_TAC WORD_EQ_IMP THEN
-  CONJ_TAC THEN REWRITE_TAC [crock3; crock4]
+  CONJ_TAC THEN
+  REWRITE_TAC [MEMORY_BYTES_BOUND; XTS_MAGIC_NUM_OF_BYTELIST_BOUND]
   );;
 
 let BYTES128_LOADED_DATA_CLEAN = prove
- (`bytes_loaded s (word (pc + 2480)) xts_magic_clean <=>
-   read (memory :> bytes128 (word (pc + 2480))) s =
+ (`bytes_loaded s (word (pc + 2512)) xts_magic_clean <=>
+   read (memory :> bytes128 (word (pc + 2512))) s =
    word (num_of_bytelist xts_magic_clean)`,
   REWRITE_TAC[READ_MEMORY_BYTES128_BYTES] THEN
   REWRITE_TAC[bytes_loaded; READ_BYTELIST_EQ_BYTES;
@@ -1986,29 +2011,30 @@ let BYTES128_LOADED_DATA_CLEAN = prove
      (AP_TERM `LENGTH:byte list->num` xts_magic_clean)] THEN
   CONV_TAC SYM_CONV THEN
   MATCH_MP_TAC WORD_EQ_IMP THEN
-  CONJ_TAC THEN REWRITE_TAC [crock3; crock5]
+  CONJ_TAC THEN
+  REWRITE_TAC [MEMORY_BYTES_BOUND; XTS_MAGIC_CLEAN_NUM_OF_BYTELIST_BOUND]
   );;
 
 (* TODO: Need to generalize, alignement proofs? Any inspirations? *)
 (* Q: How to think about the case when PC wraps around? *)
-let crock1 = prove
-  ( `word ((val ((word (pc + 95)):int64)) + 2353) = ((word (pc + 2448)):int64)`,
+let load_xts_magic_pc_equiv = prove
+  ( `word ((val ((word (pc + 108)):int64)) + 2372) = ((word (pc + 2480)):int64)`,
   CONV_TAC WORD_RULE
    );;
-let crock2 = prove
-  ( `word ((val ((word (pc2 + 99)):int64)) + 2381) = ((word (pc2 + 2480)):int64)`,
+let load_xts_magic_clean_pc2_equiv = prove
+  ( `word ((val ((word (pc2 + 112)):int64)) + 2400) = ((word (pc2 + 2512)):int64)`,
   CONV_TAC WORD_RULE);;
 
 let alignment_lemma1 = prove
-  (`aligned 16 ((word (pc+2448)):int64) ==>
-    aligned 16 ((word (val ((word (pc + 95)):int64)+2353)):int64)`,
-   REWRITE_TAC[crock1]
+  (`aligned 16 ((word (pc+2480)):int64) ==>
+    aligned 16 ((word (val ((word (pc + 108)):int64)+2372)):int64)`,
+   REWRITE_TAC[load_xts_magic_pc_equiv]
     );;
 
 let alignment_lemma2 = prove
-  (`aligned 16 ((word (pc2+2480)):int64) ==>
-    aligned 16 ((word (val ((word (pc2 + 99)):int64)+2381)):int64)`,
-    REWRITE_TAC[crock2]);;
+  (`aligned 16 ((word (pc2+2512)):int64) ==>
+    aligned 16 ((word (val ((word (pc2 + 112)):int64)+2400)):int64)`,
+    REWRITE_TAC[load_xts_magic_clean_pc2_equiv]);;
 
 let LENGTH_xts_magic_lemma = prove
   (`LENGTH xts_magic=16`,
@@ -2017,7 +2043,7 @@ let LENGTH_xts_magic_clean_lemma = prove
   (`LENGTH xts_magic_clean=16`,
     REWRITE_TAC [(REWRITE_CONV [xts_magic_clean] THENC LENGTH_CONV) `LENGTH xts_magic_clean`]);;
 
-let crock6 = prove
+let XTS_MAGIC_EQUIV = prove
   (`xts_magic = xts_magic_clean`, REWRITE_TAC[xts_magic; xts_magic_clean]);;
 
 let rw = Compute.bool_compset();;
@@ -2030,6 +2056,9 @@ my_conv `LENGTH aes_hw_xts_encrypt_clean_mc`;;
 
 
 let ADD_IMP_ASSUM_TAC lemma =
+  MP_TAC lemma THEN ANTS_TAC THENL [ASM_REWRITE_TAC[] THEN NO_TAC; STRIP_TAC];;
+
+let REWRITE_IMP_ASSUM_TAC lemma =
   MP_TAC lemma THEN ANTS_TAC THENL [ASM_REWRITE_TAC[] THEN NO_TAC; STRIP_TAC];;
 
 let ADD_ASSUM_TAC lemma =
@@ -2066,123 +2095,122 @@ let org_extra_word_conv = !extra_word_CONV;;
 (* Enable simplification of word_subwords by default *)
 extra_word_CONV := [WORD_SIMPLE_SUBWORD_CONV] @ !extra_word_CONV;;
 
+let rdx_divisibility = prove(
+  `val (len:int64) >= 0 ==> exists n. n >= 0 /\
+      word_and len (word 18446744073709551600) = word (16 * n)`,
+  CHEAT_TAC
+);;
+
 let EQUIV = prove(equiv_goal,
 
   (* Rewrite SOME_FLAGS, ALL, nonoverlapping, and LENGTH * *)
   REWRITE_TAC[SOME_FLAGS; ALL;NONOVERLAPPING_CLAUSES;LENGTH_APPEND;
               fst AES_HW_XTS_ENCRYPT_EXEC;LENGTH_xts_magic_lemma;
               fst AES_HW_XTS_ENCRYPT_CLEAN_EXEC;LENGTH_xts_magic_clean_lemma] THEN
-  CONV_TAC (ONCE_DEPTH_CONV LENGTH_CONV) THEN
   CONV_TAC (ONCE_DEPTH_CONV NUM_ADD_CONV) THEN
   REPEAT STRIP_TAC THEN
   REWRITE_TAC[BYTES_LOADED_APPEND_CLAUSE] THEN
   REWRITE_TAC[fst AES_HW_XTS_ENCRYPT_EXEC; fst AES_HW_XTS_ENCRYPT_CLEAN_EXEC] THEN
+  (* Separate loading of constants *)
   REWRITE_TAC[BYTES128_LOADED_DATA; BYTES128_LOADED_DATA_CLEAN] THEN
 
   (** Initialize **)
   EQUIV_INITIATE_TAC aes_xts_eqin THEN
-  (* Q: better way to do the following? *)
   EVERY_ASSUM(fun th ->
    try MP_TAC(GEN_REWRITE_RULE I [key_schedule_equiv;ghost_ymms] th)
    with Failure _ -> ALL_TAC) THEN
   REPEAT STRIP_TAC THEN
-  (* TODO: use DISCARD_MATCHING_ASSUMPTIONS to remove original assumptions *)
+  (** Add xts_magic equivalence **)
+  ADD_ASSUM_TAC XTS_MAGIC_EQUIV THEN
 
+  (** Start symbolic simulation **)
+  EQUIV_STEPS_TAC [
+    ("equal",0,1,0,1);
+    ("replace",1,3,1,3);
+    ("equal",3,5,3,5);
+    ("replace",5,6,5,6);
+    ("equal",6,7,6,7);
+  ] AES_HW_XTS_ENCRYPT_EXEC AES_HW_XTS_ENCRYPT_CLEAN_EXEC THEN
+  (* .Loop_enc1_6 *)
+  AESENC_TAC (7,67) THEN
+  EQUIV_STEPS_TAC [
+    ("equal",72,75,72,75);
+    ("replace",75,79,75,79);
+  ] AES_HW_XTS_ENCRYPT_EXEC AES_HW_XTS_ENCRYPT_CLEAN_EXEC THEN
+  (* rdx divisibility *)
+  ADD_IMP_ASSUM_TAC rdx_divisibility THEN
+
+  EQUIV_STEPS_TAC [
+    ("equal",79,80,79,80);
+  ] AES_HW_XTS_ENCRYPT_EXEC AES_HW_XTS_ENCRYPT_CLEAN_EXEC THEN
+  (* resolving alignment for movdqa *)
   ADD_IMP_ASSUM_TAC alignment_lemma1 THEN
   ADD_IMP_ASSUM_TAC alignment_lemma2 THEN
-  ADD_ASSUM_TAC crock1 THEN
-  ADD_ASSUM_TAC crock2 THEN
-  ADD_ASSUM_TAC crock6 THEN
-
+  (* avoid YMM8 being wrongly dropped from the assumptions *)
+  ADD_ASSUM_TAC load_xts_magic_pc_equiv THEN
+  ADD_ASSUM_TAC load_xts_magic_clean_pc2_equiv THEN
   EQUIV_STEPS_TAC [
-    ("equal",0,2,0,2);
-    ("replace",2,4,2,4);
-    ("equal",4,6,4,6);
-    ("replace",6,7,6,7);
-    ("equal",7,8,7,8);
-  ] AES_HW_XTS_ENCRYPT_EXEC AES_HW_XTS_ENCRYPT_CLEAN_EXEC THEN
-  RULE_ASSUM_TAC (CONV_RULE (TOP_DEPTH_CONV WORD_SIMPLE_SUBWORD_CONV)) THEN
-  (* .Loop_enc1_6 *)
-  AESENC_TAC (8,68) THEN
-  EQUIV_STEPS_TAC [
-    ("equal",73,76,73,76);
-    ("replace",76,80,76,80);
-  ] AES_HW_XTS_ENCRYPT_EXEC AES_HW_XTS_ENCRYPT_CLEAN_EXEC THEN
-  RULE_ASSUM_TAC (CONV_RULE (TOP_DEPTH_CONV WORD_SIMPLE_SUBWORD_CONV)) THEN
-  EQUIV_STEPS_TAC [
-    ("equal",80,81,80,81);
-  ] AES_HW_XTS_ENCRYPT_EXEC AES_HW_XTS_ENCRYPT_CLEAN_EXEC THEN
-  RULE_ASSUM_TAC (CONV_RULE (TOP_DEPTH_CONV WORD_SIMPLE_SUBWORD_CONV)) THEN
-  EQUIV_STEPS_TAC [
-    ("replace",81,85,81,85);
+    ("replace",80,84,80,84);
   ] AES_HW_XTS_ENCRYPT_EXEC AES_HW_XTS_ENCRYPT_CLEAN_EXEC THEN
   RULE_ASSUM_TAC (CONV_RULE (TOP_DEPTH_CONV WORD_SIMPLE_SUBWORD_CONV)) THEN
   FORCE_READ_EQ_TAC `YMM1` THEN
   FORCE_READ_EQ_TAC `YMM8` THEN FORCE_READ_EQ_TAC `YMM9` THEN
 
-  TWEAK_TAC 85 `YMM10` THEN
-  TWEAK_TAC 93 `YMM11` THEN
-  TWEAK_TAC 101 `YMM12` THEN
-  TWEAK_TAC 109 `YMM13` THEN
-  TWEAK_LAST_TAC 117 `YMM14` THEN
+  TWEAK_TAC 84 `YMM10` THEN
+  TWEAK_TAC 92 `YMM11` THEN
+  TWEAK_TAC 100 `YMM12` THEN
+  TWEAK_TAC 108 `YMM13` THEN
+  TWEAK_LAST_TAC 116 `YMM14` THEN
 
   EQUIV_STEPS_TAC [
-    ("equal",123,124,123,124);
+    ("equal",116,117,116,117);
+    ("replace",117,119,117,119);
   ] AES_HW_XTS_ENCRYPT_EXEC AES_HW_XTS_ENCRYPT_CLEAN_EXEC THEN
-  RULE_ASSUM_TAC (CONV_RULE (TOP_DEPTH_CONV WORD_SIMPLE_SUBWORD_CONV)) THEN
-  EQUIV_STEPS_TAC [
-    ("replace",124,126,124,126);
-  ] AES_HW_XTS_ENCRYPT_EXEC AES_HW_XTS_ENCRYPT_CLEAN_EXEC THEN
-  RULE_ASSUM_TAC (CONV_RULE (TOP_DEPTH_CONV WORD_SIMPLE_SUBWORD_CONV)) THEN
 
+  (** Control flow, test if less than 6 blocks of data **)
+  ASM_CASES_TAC `val ((word (16 * n)):int64) < 96` THENL 
+  [ POP_ASSUM(fun th -> RULE_ASSUM_TAC(REWRITE_RULE[th]) THEN ASSUME_TAC th) THEN CHEAT_TAC;
+    POP_ASSUM(fun th -> RULE_ASSUM_TAC(SIMP_RULE[th]) THEN ASSUME_TAC th) THEN CHEAT_TAC ]
+    
   (* .Lxts_enc_short *)
   EQUIV_STEPS_TAC [
-    ("replace",126,127,126,127);
-    ("equal",127,128,127,128);
-    ("replace",128,130,128,130);
-    ("equal",130,131,130,131);
-    ("replace",131,133,131,133);
+    ("replace",125,126,125,126);
+    ("equal",126,127,126,127);
+    ("replace",127,129,127,129);
+    ("equal",129,130,129,130);
+    ("replace",130,132,130,132);
   ] AES_HW_XTS_ENCRYPT_EXEC AES_HW_XTS_ENCRYPT_CLEAN_EXEC THEN
-  RULE_ASSUM_TAC (CONV_RULE (TOP_DEPTH_CONV WORD_SIMPLE_SUBWORD_CONV)) THEN
   (* .Lxts_enc_one *)
   EQUIV_STEPS_TAC [
-    ("replace",133,135,133,135);
+    ("replace",132,134,132,134);
   ] AES_HW_XTS_ENCRYPT_EXEC AES_HW_XTS_ENCRYPT_CLEAN_EXEC THEN
-  RULE_ASSUM_TAC (CONV_RULE (TOP_DEPTH_CONV WORD_SIMPLE_SUBWORD_CONV)) THEN
   FORCE_READ_EQ_TAC `RDI` THEN
   EQUIV_STEPS_TAC [
-    ("equal",135,136,135,136);
+    ("equal",134,135,134,135);
   ] AES_HW_XTS_ENCRYPT_EXEC AES_HW_XTS_ENCRYPT_CLEAN_EXEC THEN
-  RULE_ASSUM_TAC (CONV_RULE (TOP_DEPTH_CONV WORD_SIMPLE_SUBWORD_CONV)) THEN
 
   EQUIV_STEPS_TAC [
-    ("equal",136,138,136,138);
-    ("replace",138,139,138,139);
-    ("equal",139,140,139,140);
+    ("equal",135,137,135,137);
+    ("replace",137,138,137,138);
+    ("equal",138,139,138,139);
   ] AES_HW_XTS_ENCRYPT_EXEC AES_HW_XTS_ENCRYPT_CLEAN_EXEC THEN
-  RULE_ASSUM_TAC (CONV_RULE (TOP_DEPTH_CONV WORD_SIMPLE_SUBWORD_CONV)) THEN
-  AESENC_TAC (140,200) THEN
+  AESENC_TAC (139,199) THEN
   EQUIV_STEPS_TAC [
-    ("equal",205,209,205,209);
-    ("replace",209,211,209,211);
+    ("equal",204,208,204,208);
+    ("replace",208,210,208,210);
   ] AES_HW_XTS_ENCRYPT_EXEC AES_HW_XTS_ENCRYPT_CLEAN_EXEC THEN
-  RULE_ASSUM_TAC (CONV_RULE (TOP_DEPTH_CONV WORD_SIMPLE_SUBWORD_CONV)) THEN
   (* .Lxts_enc_done *)
   EQUIV_STEPS_TAC [
-    ("replace",211,213,211,213);
+    ("replace",210,212,210,212);
   ] AES_HW_XTS_ENCRYPT_EXEC AES_HW_XTS_ENCRYPT_CLEAN_EXEC THEN
-  RULE_ASSUM_TAC (CONV_RULE (TOP_DEPTH_CONV WORD_SIMPLE_SUBWORD_CONV)) THEN
   (* .Lxts_enc_ret *)
   EQUIV_STEPS_TAC [
-    ("replace",213,221,213,221);
+    ("replace",212,220,212,220);
   ] AES_HW_XTS_ENCRYPT_EXEC AES_HW_XTS_ENCRYPT_CLEAN_EXEC THEN
-  RULE_ASSUM_TAC (CONV_RULE (TOP_DEPTH_CONV WORD_SIMPLE_SUBWORD_CONV)) THEN
 
   EQUIV_STEPS_TAC [
-    ("replace", 221,236,221,236);
+    ("replace", 220,237,220,237);
   ] AES_HW_XTS_ENCRYPT_EXEC AES_HW_XTS_ENCRYPT_CLEAN_EXEC THEN
-  RULE_ASSUM_TAC (CONV_RULE (TOP_DEPTH_CONV WORD_SIMPLE_SUBWORD_CONV)) THEN
-  (* TODO: handle return later *)
 
   REPEAT_N 2 ENSURES_N_FINAL_STATE_TAC THEN
   ASM_REWRITE_TAC[] THEN
