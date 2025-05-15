@@ -2748,8 +2748,10 @@ let X86_THM =
     REPEAT STRIP_TAC THEN REWRITE_TAC [x86] THEN
     ASM_REWRITE_TAC[GSYM WORD_ADD] THEN
     ASM_MESON_TAC[PAIR_EQ; x86_decode_unique]) in
+  let _ = print_string "in x86_thm\n" in
   fun (execth2:thm option array) loaded_mc_th pc_th ->
     let th = MATCH_MP pth pc_th in
+    let _ = print_string "in x86_thm, match_mp\n" in
     let pc_ofs:int =
       let pc_expr = snd (dest_comb (snd (dest_eq (concl pc_th)))) in
       if is_var pc_expr then 0
@@ -2856,6 +2858,7 @@ let X86_CONV (decode_ths:thm option array) ths tm =
     ths with _ ->
       failwith "X86_CONV: can't find `read RIP .. = ..` from ths" in
 
+  let _ = print_string "In X86_CONV, before bytes_loaded\n" in
   (* Find `bytes_loaded ..`. *)
   let bytes_loaded_mc_ths:thm list =
     (* Pick the _mc const from decode_ths, if decode_ths[0] != None, which is
@@ -2882,12 +2885,16 @@ let X86_CONV (decode_ths:thm option array) ths tm =
           ^ "` from ths")
     else res in
 
+  let _ = print_string "In X86_CONV, after bytes_loaded\n" in
   let eth = tryfind (fun loaded_mc_th ->
       GEN_REWRITE_CONV I [X86_THM decode_ths loaded_mc_th pc_th] tm)
     bytes_loaded_mc_ths in
+  let _ = print_thm eth in
+  let _ = print_string "In X86_CONV, before conv\n" in
   (K eth THENC
    PRINT_TERM_CONV THENC
    REWRITE_CONV[X86_EXECUTE] THENC
+   PRINT_TERM_CONV THENC
    ONCE_DEPTH_CONV OPERAND_SIZE_CONV THENC
    REWRITE_CONV[condition_semantics; aligned_OPERAND128] THENC
    REWRITE_CONV[OPERAND_SIZE_CASES] THENC
