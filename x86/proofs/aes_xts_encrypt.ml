@@ -8,6 +8,586 @@ needs "x86/proofs/equiv.ml";;
 print_coda_from_elf 0x9b0 "x86/aes-xts/aes_hw_xts_encrypt.o";;
 print_coda_from_elf 0x9d0 "x86/aes-xts/aes_hw_xts_encrypt_clean.o";;
 
+List.length [  0xf3; 0x0f; 0x6f; 0x17;  (* MOVDQU (%_% xmm2) (Memop Word128 (%% (rdi,0))) *)
+  0x66; 0x44; 0x0f; 0x6f; 0xc0;
+                           (* MOVDQA (%_% xmm8) (%_% xmm0) *)
+  0xf3; 0x0f; 0x6f; 0x5f; 0x10;
+                           (* MOVDQU (%_% xmm3) (Memop Word128 (%% (rdi,16))) *)
+  0x66; 0x41; 0x0f; 0xef; 0xd2;
+                           (* PXOR (%_% xmm2) (%_% xmm10) *)
+  0xf3; 0x0f; 0x6f; 0x67; 0x20;
+                           (* MOVDQU (%_% xmm4) (Memop Word128 (%% (rdi,32))) *)
+  0x66; 0x41; 0x0f; 0xef; 0xdb;
+                           (* PXOR (%_% xmm3) (%_% xmm11) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xd1;
+                           (* AESENC (%_% xmm2) (%_% xmm1) *)
+  0xf3; 0x0f; 0x6f; 0x6f; 0x30;
+                           (* MOVDQU (%_% xmm5) (Memop Word128 (%% (rdi,48))) *)
+  0x66; 0x41; 0x0f; 0xef; 0xe4;
+                           (* PXOR (%_% xmm4) (%_% xmm12) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xd9;
+                           (* AESENC (%_% xmm3) (%_% xmm1) *)
+  0xf3; 0x0f; 0x6f; 0x77; 0x40;
+                           (* MOVDQU (%_% xmm6) (Memop Word128 (%% (rdi,64))) *)
+  0x66; 0x41; 0x0f; 0xef; 0xed;
+                           (* PXOR (%_% xmm5) (%_% xmm13) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xe1;
+                           (* AESENC (%_% xmm4) (%_% xmm1) *)
+  0xf3; 0x0f; 0x6f; 0x7f; 0x50;
+                           (* MOVDQU (%_% xmm7) (Memop Word128 (%% (rdi,80))) *)
+  0x66; 0x45; 0x0f; 0xef; 0xc7;
+                           (* PXOR (%_% xmm8) (%_% xmm15) *)
+  0x66; 0x44; 0x0f; 0x6f; 0x4c; 0x24; 0x60;
+                           (* MOVDQA (%_% xmm9) (Memop Word128 (%% (rsp,96))) *)
+  0x66; 0x41; 0x0f; 0xef; 0xf6;
+                           (* PXOR (%_% xmm6) (%_% xmm14) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xe9;
+                           (* AESENC (%_% xmm5) (%_% xmm1) *)
+  0x0f; 0x10; 0x45; 0x20;  (* MOVUPS (%_% xmm0) (Memop Word128 (%% (rbp,32))) *)
+  0x48; 0x8d; 0x7f; 0x60;  (* LEA (% rdi) (%% (rdi,96)) *)
+  0x66; 0x41; 0x0f; 0xef; 0xf8;
+                           (* PXOR (%_% xmm7) (%_% xmm8) *)
+  0x66; 0x45; 0x0f; 0xef; 0xd1;
+                           (* PXOR (%_% xmm10) (%_% xmm9) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xf1;
+                           (* AESENC (%_% xmm6) (%_% xmm1) *)
+  0x66; 0x45; 0x0f; 0xef; 0xd9;
+                           (* PXOR (%_% xmm11) (%_% xmm9) *)
+  0x66; 0x44; 0x0f; 0x7f; 0x14; 0x24;
+                           (* MOVDQA (Memop Word128 (%% (rsp,0))) (%_% xmm10) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xf9;
+                           (* AESENC (%_% xmm7) (%_% xmm1) *)
+  0x0f; 0x10; 0x4d; 0x30;  (* MOVUPS (%_% xmm1) (Memop Word128 (%% (rbp,48))) *)
+  0x66; 0x45; 0x0f; 0xef; 0xe1;
+                           (* PXOR (%_% xmm12) (%_% xmm9) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xd0;
+                           (* AESENC (%_% xmm2) (%_% xmm0) *)
+  0x66; 0x45; 0x0f; 0xef; 0xe9;
+                           (* PXOR (%_% xmm13) (%_% xmm9) *)
+  0x66; 0x44; 0x0f; 0x7f; 0x5c; 0x24; 0x10;
+                           (* MOVDQA (Memop Word128 (%% (rsp,16))) (%_% xmm11) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xd8;
+                           (* AESENC (%_% xmm3) (%_% xmm0) *)
+  0x66; 0x45; 0x0f; 0xef; 0xf1;
+                           (* PXOR (%_% xmm14) (%_% xmm9) *)
+  0x66; 0x44; 0x0f; 0x7f; 0x64; 0x24; 0x20;
+                           (* MOVDQA (Memop Word128 (%% (rsp,32))) (%_% xmm12) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xe0;
+                           (* AESENC (%_% xmm4) (%_% xmm0) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xe8;
+                           (* AESENC (%_% xmm5) (%_% xmm0) *)
+  0x66; 0x45; 0x0f; 0xef; 0xc1;
+                           (* PXOR (%_% xmm8) (%_% xmm9) *)
+  0x66; 0x44; 0x0f; 0x7f; 0x74; 0x24; 0x40;
+                           (* MOVDQA (Memop Word128 (%% (rsp,64))) (%_% xmm14) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xf0;
+                           (* AESENC (%_% xmm6) (%_% xmm0) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xf8;
+                           (* AESENC (%_% xmm7) (%_% xmm0) *)
+  0x0f; 0x10; 0x45; 0x40;  (* MOVUPS (%_% xmm0) (Memop Word128 (%% (rbp,64))) *)
+  0x66; 0x44; 0x0f; 0x7f; 0x44; 0x24; 0x50;
+                           (* MOVDQA (Memop Word128 (%% (rsp,80))) (%_% xmm8) *)
+  0x66; 0x45; 0x0f; 0x70; 0xcf; 0x5f;
+                           (* PSHUFD (%_% xmm9) (%_% xmm15) (Imm8 (word 95)) *)
+  0xeb; 0x00;              (* JMP (Imm8 (word 0)) -- .Lxts_enc_loop6 *)
+  0x66; 0x0f; 0x38; 0xdc; 0xd1;
+                           (* AESENC (%_% xmm2) (%_% xmm1) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xd9;
+                           (* AESENC (%_% xmm3) (%_% xmm1) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xe1;
+                           (* AESENC (%_% xmm4) (%_% xmm1) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xe9;
+                           (* AESENC (%_% xmm5) (%_% xmm1) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xf1;
+                           (* AESENC (%_% xmm6) (%_% xmm1) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xf9;
+                           (* AESENC (%_% xmm7) (%_% xmm1) *)
+  0x0f; 0x10; 0x4c; 0x01; 0xc0;
+                           (* MOVUPS (%_% xmm1) (Memop Word128 (%%%% (rcx,0,rax,-- &64))) *)
+  0x48; 0x83; 0xc0; 0x20;  (* ADD (% rax) (Imm8 (word 32)) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xd0;
+                           (* AESENC (%_% xmm2) (%_% xmm0) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xd8;
+                           (* AESENC (%_% xmm3) (%_% xmm0) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xe0;
+                           (* AESENC (%_% xmm4) (%_% xmm0) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xe8;
+                           (* AESENC (%_% xmm5) (%_% xmm0) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xf0;
+                           (* AESENC (%_% xmm6) (%_% xmm0) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xf8;
+                           (* AESENC (%_% xmm7) (%_% xmm0) *)
+  0x0f; 0x10; 0x44; 0x01; 0xb0;
+                           (* MOVUPS (%_% xmm0) (Memop Word128 (%%%% (rcx,0,rax,-- &80))) *)
+  0x75; 0xb4;              (* JNE (Imm8 (word 180))  -- jnz .Lxts_enc_loop6 *)
+  0x66; 0x45; 0x0f; 0x6f; 0x00;
+                           (* MOVDQA (%_% xmm8) (Memop Word128 (%% (r8,0))) *)
+  0x66; 0x45; 0x0f; 0x6f; 0xf1;
+                           (* MOVDQA (%_% xmm14) (%_% xmm9) *)
+  0x66; 0x45; 0x0f; 0xfe; 0xc9;
+                           (* PADDD (%_% xmm9) (%_% xmm9) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xd1;
+                           (* AESENC (%_% xmm2) (%_% xmm1) *)
+  0x66; 0x45; 0x0f; 0xd4; 0xff;
+                           (* PADDQ (%_% xmm15) (%_% xmm15) *)
+  0x66; 0x41; 0x0f; 0x72; 0xe6; 0x1f;
+                           (* PSRAD (%_% xmm14) (Imm8 (word 31)) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xd9;
+                           (* AESENC (%_% xmm3) (%_% xmm1) *)
+  0x66; 0x45; 0x0f; 0xdb; 0xf0;
+                           (* PAND (%_% xmm14) (%_% xmm8) *)
+  0x44; 0x0f; 0x10; 0x55; 0x00;
+                           (* MOVUPS (%_% xmm10) (Memop Word128 (%% (rbp,0))) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xe1;
+                           (* AESENC (%_% xmm4) (%_% xmm1) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xe9;
+                           (* AESENC (%_% xmm5) (%_% xmm1) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xf1;
+                           (* AESENC (%_% xmm6) (%_% xmm1) *)
+  0x66; 0x45; 0x0f; 0xef; 0xfe;
+                           (* PXOR (%_% xmm15) (%_% xmm14) *)
+  0x45; 0x0f; 0x28; 0xda;  (* MOVAPS (%_% xmm11) (%_% xmm10) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xf9;
+                           (* AESENC (%_% xmm7) (%_% xmm1) *)
+  0x0f; 0x10; 0x49; 0xc0;  (* MOVUPS (%_% xmm1) (Memop Word128 (%% (rcx,18446744073709551552))) *)
+  0x66; 0x45; 0x0f; 0x6f; 0xf1;
+                           (* MOVDQA (%_% xmm14) (%_% xmm9) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xd0;
+                           (* AESENC (%_% xmm2) (%_% xmm0) *)
+  0x66; 0x45; 0x0f; 0xfe; 0xc9;
+                           (* PADDD (%_% xmm9) (%_% xmm9) *)
+  0x66; 0x45; 0x0f; 0xef; 0xd7;
+                           (* PXOR (%_% xmm10) (%_% xmm15) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xd8;
+                           (* AESENC (%_% xmm3) (%_% xmm0) *)
+  0x66; 0x41; 0x0f; 0x72; 0xe6; 0x1f;
+                           (* PSRAD (%_% xmm14) (Imm8 (word 31)) *)
+  0x66; 0x45; 0x0f; 0xd4; 0xff;
+                           (* PADDQ (%_% xmm15) (%_% xmm15) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xe0;
+                           (* AESENC (%_% xmm4) (%_% xmm0) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xe8;
+                           (* AESENC (%_% xmm5) (%_% xmm0) *)
+  0x66; 0x45; 0x0f; 0xdb; 0xf0;
+                           (* PAND (%_% xmm14) (%_% xmm8) *)
+  0x45; 0x0f; 0x28; 0xe3;  (* MOVAPS (%_% xmm12) (%_% xmm11) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xf0;
+                           (* AESENC (%_% xmm6) (%_% xmm0) *)
+  0x66; 0x45; 0x0f; 0xef; 0xfe;
+                           (* PXOR (%_% xmm15) (%_% xmm14) *)
+  0x66; 0x45; 0x0f; 0x6f; 0xf1;
+                           (* MOVDQA (%_% xmm14) (%_% xmm9) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xf8;
+                           (* AESENC (%_% xmm7) (%_% xmm0) *)
+  0x0f; 0x10; 0x41; 0xd0;  (* MOVUPS (%_% xmm0) (Memop Word128 (%% (rcx,18446744073709551568))) *)
+  0x66; 0x45; 0x0f; 0xfe; 0xc9;
+                           (* PADDD (%_% xmm9) (%_% xmm9) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xd1;
+                           (* AESENC (%_% xmm2) (%_% xmm1) *)
+  0x66; 0x45; 0x0f; 0xef; 0xdf;
+                           (* PXOR (%_% xmm11) (%_% xmm15) *)
+  0x66; 0x41; 0x0f; 0x72; 0xe6; 0x1f;
+                           (* PSRAD (%_% xmm14) (Imm8 (word 31)) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xd9;
+                           (* AESENC (%_% xmm3) (%_% xmm1) *)
+  0x66; 0x45; 0x0f; 0xd4; 0xff;
+                           (* PADDQ (%_% xmm15) (%_% xmm15) *)
+  0x66; 0x45; 0x0f; 0xdb; 0xf0;
+                           (* PAND (%_% xmm14) (%_% xmm8) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xe1;
+                           (* AESENC (%_% xmm4) (%_% xmm1) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xe9;
+                           (* AESENC (%_% xmm5) (%_% xmm1) *)
+  0x66; 0x44; 0x0f; 0x7f; 0x6c; 0x24; 0x30;
+                           (* MOVDQA (Memop Word128 (%% (rsp,48))) (%_% xmm13) *)
+  0x66; 0x45; 0x0f; 0xef; 0xfe;
+                           (* PXOR (%_% xmm15) (%_% xmm14) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xf1;
+                           (* AESENC (%_% xmm6) (%_% xmm1) *)
+  0x45; 0x0f; 0x28; 0xec;  (* MOVAPS (%_% xmm13) (%_% xmm12) *)
+  0x66; 0x45; 0x0f; 0x6f; 0xf1;
+                           (* MOVDQA (%_% xmm14) (%_% xmm9) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xf9;
+                           (* AESENC (%_% xmm7) (%_% xmm1) *)
+  0x0f; 0x10; 0x49; 0xe0;  (* MOVUPS (%_% xmm1) (Memop Word128 (%% (rcx,18446744073709551584))) *)
+  0x66; 0x45; 0x0f; 0xfe; 0xc9;
+                           (* PADDD (%_% xmm9) (%_% xmm9) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xd0;
+                           (* AESENC (%_% xmm2) (%_% xmm0) *)
+  0x66; 0x45; 0x0f; 0xef; 0xe7;
+                           (* PXOR (%_% xmm12) (%_% xmm15) *)
+  0x66; 0x41; 0x0f; 0x72; 0xe6; 0x1f;
+                           (* PSRAD (%_% xmm14) (Imm8 (word 31)) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xd8;
+                           (* AESENC (%_% xmm3) (%_% xmm0) *)
+  0x66; 0x45; 0x0f; 0xd4; 0xff;
+                           (* PADDQ (%_% xmm15) (%_% xmm15) *)
+  0x66; 0x45; 0x0f; 0xdb; 0xf0;
+                           (* PAND (%_% xmm14) (%_% xmm8) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xe0;
+                           (* AESENC (%_% xmm4) (%_% xmm0) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xe8;
+                           (* AESENC (%_% xmm5) (%_% xmm0) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xf0;
+                           (* AESENC (%_% xmm6) (%_% xmm0) *)
+  0x66; 0x45; 0x0f; 0xef; 0xfe;
+                           (* PXOR (%_% xmm15) (%_% xmm14) *)
+  0x45; 0x0f; 0x28; 0xf5;  (* MOVAPS (%_% xmm14) (%_% xmm13) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xf8;
+                           (* AESENC (%_% xmm7) (%_% xmm0) *)
+  0x66; 0x41; 0x0f; 0x6f; 0xc1;
+                           (* MOVDQA (%_% xmm0) (%_% xmm9) *)
+  0x66; 0x45; 0x0f; 0xfe; 0xc9;
+                           (* PADDD (%_% xmm9) (%_% xmm9) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xd1;
+                           (* AESENC (%_% xmm2) (%_% xmm1) *)
+  0x66; 0x45; 0x0f; 0xef; 0xef;
+                           (* PXOR (%_% xmm13) (%_% xmm15) *)
+  0x66; 0x0f; 0x72; 0xe0; 0x1f;
+                           (* PSRAD (%_% xmm0) (Imm8 (word 31)) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xd9;
+                           (* AESENC (%_% xmm3) (%_% xmm1) *)
+  0x66; 0x45; 0x0f; 0xd4; 0xff;
+                           (* PADDQ (%_% xmm15) (%_% xmm15) *)
+  0x66; 0x41; 0x0f; 0xdb; 0xc0;
+                           (* PAND (%_% xmm0) (%_% xmm8) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xe1;
+                           (* AESENC (%_% xmm4) (%_% xmm1) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xe9;
+                           (* AESENC (%_% xmm5) (%_% xmm1) *)
+  0x66; 0x44; 0x0f; 0xef; 0xf8;
+                           (* PXOR (%_% xmm15) (%_% xmm0) *)
+  0x0f; 0x10; 0x45; 0x00;  (* MOVUPS (%_% xmm0) (Memop Word128 (%% (rbp,0))) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xf1;
+                           (* AESENC (%_% xmm6) (%_% xmm1) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xf9;
+                           (* AESENC (%_% xmm7) (%_% xmm1) *)
+  0x0f; 0x10; 0x4d; 0x10;  (* MOVUPS (%_% xmm1) (Memop Word128 (%% (rbp,16))) *)
+  0x66; 0x45; 0x0f; 0xef; 0xf7;
+                           (* PXOR (%_% xmm14) (%_% xmm15) *)
+  0x66; 0x0f; 0x38; 0xdd; 0x54; 0x24; 0x00;
+                           (* AESENCLAST (%_% xmm2) (Memop Word128 (%% (rsp,0))) *)
+  0x66; 0x41; 0x0f; 0x72; 0xe1; 0x1f;
+                           (* PSRAD (%_% xmm9) (Imm8 (word 31)) *)
+  0x66; 0x45; 0x0f; 0xd4; 0xff;
+                           (* PADDQ (%_% xmm15) (%_% xmm15) *)
+  0x66; 0x0f; 0x38; 0xdd; 0x5c; 0x24; 0x10;
+                           (* AESENCLAST (%_% xmm3) (Memop Word128 (%% (rsp,16))) *)
+  0x66; 0x0f; 0x38; 0xdd; 0x64; 0x24; 0x20;
+                           (* AESENCLAST (%_% xmm4) (Memop Word128 (%% (rsp,32))) *)
+  0x66; 0x45; 0x0f; 0xdb; 0xc8;
+                           (* PAND (%_% xmm9) (%_% xmm8) *)
+  0x4c; 0x89; 0xd0;        (* MOV (% rax) (% r10) *)
+  0x66; 0x0f; 0x38; 0xdd; 0x6c; 0x24; 0x30;
+                           (* AESENCLAST (%_% xmm5) (Memop Word128 (%% (rsp,48))) *)
+  0x66; 0x0f; 0x38; 0xdd; 0x74; 0x24; 0x40;
+                           (* AESENCLAST (%_% xmm6) (Memop Word128 (%% (rsp,64))) *)
+  0x66; 0x0f; 0x38; 0xdd; 0x7c; 0x24; 0x50;
+                           (* AESENCLAST (%_% xmm7) (Memop Word128 (%% (rsp,80))) *)
+  0x66; 0x45; 0x0f; 0xef; 0xf9;
+                           (* PXOR (%_% xmm15) (%_% xmm9) *)
+  0x48; 0x8d; 0x76; 0x60;  (* LEA (% rsi) (%% (rsi,96)) *)
+  0x0f; 0x11; 0x56; 0xa0;  (* MOVUPS (Memop Word128 (%% (rsi,18446744073709551520))) (%_% xmm2) *)
+  0x0f; 0x11; 0x5e; 0xb0;  (* MOVUPS (Memop Word128 (%% (rsi,18446744073709551536))) (%_% xmm3) *)
+  0x0f; 0x11; 0x66; 0xc0;  (* MOVUPS (Memop Word128 (%% (rsi,18446744073709551552))) (%_% xmm4) *)
+  0x0f; 0x11; 0x6e; 0xd0;  (* MOVUPS (Memop Word128 (%% (rsi,18446744073709551568))) (%_% xmm5) *)
+  0x0f; 0x11; 0x76; 0xe0;  (* MOVUPS (Memop Word128 (%% (rsi,18446744073709551584))) (%_% xmm6) *)
+  0x0f; 0x11; 0x7e; 0xf0;  (* MOVUPS (Memop Word128 (%% (rsi,18446744073709551600))) (%_% xmm7) *)
+  0x48; 0x83; 0xea; 0x60;  (* SUB (% rdx) (Imm8 (word 96)) *)];;
+
+List.length [0xf3; 0x0f; 0x6f; 0x17;  (* MOVDQU (%_% xmm2) (Memop Word128 (%% (rdi,0))) *)
+  0xf3; 0x0f; 0x6f; 0x5f; 0x10;
+                           (* MOVDQU (%_% xmm3) (Memop Word128 (%% (rdi,16))) *)
+  0xf3; 0x0f; 0x6f; 0x67; 0x20;
+                           (* MOVDQU (%_% xmm4) (Memop Word128 (%% (rdi,32))) *)
+  0xf3; 0x0f; 0x6f; 0x6f; 0x30;
+                           (* MOVDQU (%_% xmm5) (Memop Word128 (%% (rdi,48))) *)
+  0xf3; 0x0f; 0x6f; 0x77; 0x40;
+                           (* MOVDQU (%_% xmm6) (Memop Word128 (%% (rdi,64))) *)
+  0xf3; 0x0f; 0x6f; 0x7f; 0x50;
+                           (* MOVDQU (%_% xmm7) (Memop Word128 (%% (rdi,80))) *)
+  0x66; 0x44; 0x0f; 0x6f; 0xc0;
+                           (* MOVDQA (%_% xmm8) (%_% xmm0) *)
+  0x66; 0x45; 0x0f; 0xef; 0xc7;
+                           (* PXOR (%_% xmm8) (%_% xmm15) *)
+  0x66; 0x41; 0x0f; 0xef; 0xd2;
+                           (* PXOR (%_% xmm2) (%_% xmm10) *)
+  0x66; 0x41; 0x0f; 0xef; 0xdb;
+                           (* PXOR (%_% xmm3) (%_% xmm11) *)
+  0x66; 0x41; 0x0f; 0xef; 0xe4;
+                           (* PXOR (%_% xmm4) (%_% xmm12) *)
+  0x66; 0x41; 0x0f; 0xef; 0xed;
+                           (* PXOR (%_% xmm5) (%_% xmm13) *)
+  0x66; 0x41; 0x0f; 0xef; 0xf6;
+                           (* PXOR (%_% xmm6) (%_% xmm14) *)
+  0x66; 0x41; 0x0f; 0xef; 0xf8;
+                           (* PXOR (%_% xmm7) (%_% xmm8) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xd1;
+                           (* AESENC (%_% xmm2) (%_% xmm1) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xd9;
+                           (* AESENC (%_% xmm3) (%_% xmm1) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xe1;
+                           (* AESENC (%_% xmm4) (%_% xmm1) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xe9;
+                           (* AESENC (%_% xmm5) (%_% xmm1) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xf1;
+                           (* AESENC (%_% xmm6) (%_% xmm1) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xf9;
+                           (* AESENC (%_% xmm7) (%_% xmm1) *)
+  0x0f; 0x10; 0x45; 0x20;  (* MOVUPS (%_% xmm0) (Memop Word128 (%% (rbp,32))) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xd0;
+                           (* AESENC (%_% xmm2) (%_% xmm0) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xd8;
+                           (* AESENC (%_% xmm3) (%_% xmm0) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xe0;
+                           (* AESENC (%_% xmm4) (%_% xmm0) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xe8;
+                           (* AESENC (%_% xmm5) (%_% xmm0) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xf0;
+                           (* AESENC (%_% xmm6) (%_% xmm0) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xf8;
+                           (* AESENC (%_% xmm7) (%_% xmm0) *)
+  0x66; 0x44; 0x0f; 0x6f; 0x4c; 0x24; 0x60;
+                           (* MOVDQA (%_% xmm9) (Memop Word128 (%% (rsp,96))) *)
+  0x66; 0x45; 0x0f; 0xef; 0xd1;
+                           (* PXOR (%_% xmm10) (%_% xmm9) *)
+  0x66; 0x44; 0x0f; 0x7f; 0x14; 0x24;
+                           (* MOVDQA (Memop Word128 (%% (rsp,0))) (%_% xmm10) *)
+  0x66; 0x45; 0x0f; 0xef; 0xd9;
+                           (* PXOR (%_% xmm11) (%_% xmm9) *)
+  0x66; 0x44; 0x0f; 0x7f; 0x5c; 0x24; 0x10;
+                           (* MOVDQA (Memop Word128 (%% (rsp,16))) (%_% xmm11) *)
+  0x66; 0x45; 0x0f; 0xef; 0xe1;
+                           (* PXOR (%_% xmm12) (%_% xmm9) *)
+  0x66; 0x44; 0x0f; 0x7f; 0x64; 0x24; 0x20;
+                           (* MOVDQA (Memop Word128 (%% (rsp,32))) (%_% xmm12) *)
+  0x66; 0x45; 0x0f; 0xef; 0xe9;
+                           (* PXOR (%_% xmm13) (%_% xmm9) *)
+  0x66; 0x44; 0x0f; 0x7f; 0x6c; 0x24; 0x30;
+                           (* MOVDQA (Memop Word128 (%% (rsp,48))) (%_% xmm13) *)
+  0x66; 0x45; 0x0f; 0xef; 0xf1;
+                           (* PXOR (%_% xmm14) (%_% xmm9) *)
+  0x66; 0x44; 0x0f; 0x7f; 0x74; 0x24; 0x40;
+                           (* MOVDQA (Memop Word128 (%% (rsp,64))) (%_% xmm14) *)
+  0x66; 0x45; 0x0f; 0xef; 0xc1;
+                           (* PXOR (%_% xmm8) (%_% xmm9) *)
+  0x66; 0x44; 0x0f; 0x7f; 0x44; 0x24; 0x50;
+                           (* MOVDQA (Memop Word128 (%% (rsp,80))) (%_% xmm8) *)
+  0x0f; 0x10; 0x4d; 0x30;  (* MOVUPS (%_% xmm1) (Memop Word128 (%% (rbp,48))) *)
+  0x0f; 0x10; 0x45; 0x40;  (* MOVUPS (%_% xmm0) (Memop Word128 (%% (rbp,64))) *)
+  0x48; 0x8d; 0x7f; 0x60;  (* LEA (% rdi) (%% (rdi,96)) *)
+  0xeb; 0x1f;              (* JMP (Imm8 (word 31)) *)
+  0x66; 0x66; 0x2e; 0x0f; 0x1f; 0x84; 0x00; 0x00; 0x00; 0x00; 0x00;
+                           (* NOP_N (Memop Word (%%% (rax,0,rax))) *)
+  0x66; 0x66; 0x2e; 0x0f; 0x1f; 0x84; 0x00; 0x00; 0x00; 0x00; 0x00;
+                           (* NOP_N (Memop Word (%%% (rax,0,rax))) *)
+  0x66; 0x0f; 0x1f; 0x84; 0x00; 0x00; 0x00; 0x00; 0x00;
+                           (* NOP_N (Memop Word (%%% (rax,0,rax))) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xd1;
+                           (* AESENC (%_% xmm2) (%_% xmm1) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xd9;
+                           (* AESENC (%_% xmm3) (%_% xmm1) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xe1;
+                           (* AESENC (%_% xmm4) (%_% xmm1) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xe9;
+                           (* AESENC (%_% xmm5) (%_% xmm1) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xf1;
+                           (* AESENC (%_% xmm6) (%_% xmm1) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xf9;
+                           (* AESENC (%_% xmm7) (%_% xmm1) *)
+  0x0f; 0x10; 0x4c; 0x01; 0xc0;
+                           (* MOVUPS (%_% xmm1) (Memop Word128 (%%%% (rcx,0,rax,-- &64))) *)
+  0x48; 0x83; 0xc0; 0x20;  (* ADD (% rax) (Imm8 (word 32)) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xd0;
+                           (* AESENC (%_% xmm2) (%_% xmm0) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xd8;
+                           (* AESENC (%_% xmm3) (%_% xmm0) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xe0;
+                           (* AESENC (%_% xmm4) (%_% xmm0) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xe8;
+                           (* AESENC (%_% xmm5) (%_% xmm0) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xf0;
+                           (* AESENC (%_% xmm6) (%_% xmm0) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xf8;
+                           (* AESENC (%_% xmm7) (%_% xmm0) *)
+  0x0f; 0x10; 0x44; 0x01; 0xb0;
+                           (* MOVUPS (%_% xmm0) (Memop Word128 (%%%% (rcx,0,rax,-- &80))) *)
+  0x75; 0xb4;              (* JNE (Imm8 (word 180)) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xd1;
+                           (* AESENC (%_% xmm2) (%_% xmm1) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xd9;
+                           (* AESENC (%_% xmm3) (%_% xmm1) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xe1;
+                           (* AESENC (%_% xmm4) (%_% xmm1) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xe9;
+                           (* AESENC (%_% xmm5) (%_% xmm1) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xf1;
+                           (* AESENC (%_% xmm6) (%_% xmm1) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xf9;
+                           (* AESENC (%_% xmm7) (%_% xmm1) *)
+  0x0f; 0x10; 0x49; 0xc0;  (* MOVUPS (%_% xmm1) (Memop Word128 (%% (rcx,18446744073709551552))) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xd0;
+                           (* AESENC (%_% xmm2) (%_% xmm0) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xd8;
+                           (* AESENC (%_% xmm3) (%_% xmm0) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xe0;
+                           (* AESENC (%_% xmm4) (%_% xmm0) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xe8;
+                           (* AESENC (%_% xmm5) (%_% xmm0) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xf0;
+                           (* AESENC (%_% xmm6) (%_% xmm0) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xf8;
+                           (* AESENC (%_% xmm7) (%_% xmm0) *)
+  0x0f; 0x10; 0x41; 0xd0;  (* MOVUPS (%_% xmm0) (Memop Word128 (%% (rcx,18446744073709551568))) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xd1;
+                           (* AESENC (%_% xmm2) (%_% xmm1) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xd9;
+                           (* AESENC (%_% xmm3) (%_% xmm1) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xe1;
+                           (* AESENC (%_% xmm4) (%_% xmm1) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xe9;
+                           (* AESENC (%_% xmm5) (%_% xmm1) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xf1;
+                           (* AESENC (%_% xmm6) (%_% xmm1) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xf9;
+                           (* AESENC (%_% xmm7) (%_% xmm1) *)
+  0x0f; 0x10; 0x49; 0xe0;  (* MOVUPS (%_% xmm1) (Memop Word128 (%% (rcx,18446744073709551584))) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xd0;
+                           (* AESENC (%_% xmm2) (%_% xmm0) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xd8;
+                           (* AESENC (%_% xmm3) (%_% xmm0) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xe0;
+                           (* AESENC (%_% xmm4) (%_% xmm0) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xe8;
+                           (* AESENC (%_% xmm5) (%_% xmm0) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xf0;
+                           (* AESENC (%_% xmm6) (%_% xmm0) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xf8;
+                           (* AESENC (%_% xmm7) (%_% xmm0) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xd1;
+                           (* AESENC (%_% xmm2) (%_% xmm1) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xd9;
+                           (* AESENC (%_% xmm3) (%_% xmm1) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xe1;
+                           (* AESENC (%_% xmm4) (%_% xmm1) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xe9;
+                           (* AESENC (%_% xmm5) (%_% xmm1) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xf1;
+                           (* AESENC (%_% xmm6) (%_% xmm1) *)
+  0x66; 0x0f; 0x38; 0xdc; 0xf9;
+                           (* AESENC (%_% xmm7) (%_% xmm1) *)
+  0x66; 0x0f; 0x38; 0xdd; 0x14; 0x24;
+                           (* AESENCLAST (%_% xmm2) (Memop Word128 (%% (rsp,0))) *)
+  0x66; 0x0f; 0x38; 0xdd; 0x5c; 0x24; 0x10;
+                           (* AESENCLAST (%_% xmm3) (Memop Word128 (%% (rsp,16))) *)
+  0x66; 0x0f; 0x38; 0xdd; 0x64; 0x24; 0x20;
+                           (* AESENCLAST (%_% xmm4) (Memop Word128 (%% (rsp,32))) *)
+  0x66; 0x0f; 0x38; 0xdd; 0x6c; 0x24; 0x30;
+                           (* AESENCLAST (%_% xmm5) (Memop Word128 (%% (rsp,48))) *)
+  0x66; 0x0f; 0x38; 0xdd; 0x74; 0x24; 0x40;
+                           (* AESENCLAST (%_% xmm6) (Memop Word128 (%% (rsp,64))) *)
+  0x66; 0x0f; 0x38; 0xdd; 0x7c; 0x24; 0x50;
+                           (* AESENCLAST (%_% xmm7) (Memop Word128 (%% (rsp,80))) *)
+  0x66; 0x45; 0x0f; 0x6f; 0x00;
+                           (* MOVDQA (%_% xmm8) (Memop Word128 (%% (r8,0))) *)
+  0x44; 0x0f; 0x10; 0x55; 0x00;
+                           (* MOVUPS (%_% xmm10) (Memop Word128 (%% (rbp,0))) *)
+  0x66; 0x45; 0x0f; 0x70; 0xcf; 0x5f;
+                           (* PSHUFD (%_% xmm9) (%_% xmm15) (Imm8 (word 95)) *)
+  0x66; 0x45; 0x0f; 0x6f; 0xf1;
+                           (* MOVDQA (%_% xmm14) (%_% xmm9) *)
+  0x66; 0x41; 0x0f; 0x72; 0xe6; 0x1f;
+                           (* PSRAD (%_% xmm14) (Imm8 (word 31)) *)
+  0x66; 0x45; 0x0f; 0xdb; 0xf0;
+                           (* PAND (%_% xmm14) (%_% xmm8) *)
+  0x66; 0x45; 0x0f; 0xd4; 0xff;
+                           (* PADDQ (%_% xmm15) (%_% xmm15) *)
+  0x66; 0x45; 0x0f; 0xef; 0xfe;
+                           (* PXOR (%_% xmm15) (%_% xmm14) *)
+  0x66; 0x45; 0x0f; 0xfe; 0xc9;
+                           (* PADDD (%_% xmm9) (%_% xmm9) *)
+  0x45; 0x0f; 0x28; 0xda;  (* MOVAPS (%_% xmm11) (%_% xmm10) *)
+  0x66; 0x45; 0x0f; 0xef; 0xd7;
+                           (* PXOR (%_% xmm10) (%_% xmm15) *)
+  0x66; 0x45; 0x0f; 0x6f; 0xf1;
+                           (* MOVDQA (%_% xmm14) (%_% xmm9) *)
+  0x66; 0x41; 0x0f; 0x72; 0xe6; 0x1f;
+                           (* PSRAD (%_% xmm14) (Imm8 (word 31)) *)
+  0x66; 0x45; 0x0f; 0xdb; 0xf0;
+                           (* PAND (%_% xmm14) (%_% xmm8) *)
+  0x66; 0x45; 0x0f; 0xd4; 0xff;
+                           (* PADDQ (%_% xmm15) (%_% xmm15) *)
+  0x66; 0x45; 0x0f; 0xef; 0xfe;
+                           (* PXOR (%_% xmm15) (%_% xmm14) *)
+  0x66; 0x45; 0x0f; 0xfe; 0xc9;
+                           (* PADDD (%_% xmm9) (%_% xmm9) *)
+  0x45; 0x0f; 0x28; 0xe3;  (* MOVAPS (%_% xmm12) (%_% xmm11) *)
+  0x66; 0x45; 0x0f; 0xef; 0xdf;
+                           (* PXOR (%_% xmm11) (%_% xmm15) *)
+  0x66; 0x45; 0x0f; 0x6f; 0xf1;
+                           (* MOVDQA (%_% xmm14) (%_% xmm9) *)
+  0x66; 0x41; 0x0f; 0x72; 0xe6; 0x1f;
+                           (* PSRAD (%_% xmm14) (Imm8 (word 31)) *)
+  0x66; 0x45; 0x0f; 0xdb; 0xf0;
+                           (* PAND (%_% xmm14) (%_% xmm8) *)
+  0x66; 0x45; 0x0f; 0xd4; 0xff;
+                           (* PADDQ (%_% xmm15) (%_% xmm15) *)
+  0x66; 0x45; 0x0f; 0xef; 0xfe;
+                           (* PXOR (%_% xmm15) (%_% xmm14) *)
+  0x66; 0x45; 0x0f; 0xfe; 0xc9;
+                           (* PADDD (%_% xmm9) (%_% xmm9) *)
+  0x45; 0x0f; 0x28; 0xec;  (* MOVAPS (%_% xmm13) (%_% xmm12) *)
+  0x66; 0x45; 0x0f; 0xef; 0xe7;
+                           (* PXOR (%_% xmm12) (%_% xmm15) *)
+  0x66; 0x45; 0x0f; 0x6f; 0xf1;
+                           (* MOVDQA (%_% xmm14) (%_% xmm9) *)
+  0x66; 0x41; 0x0f; 0x72; 0xe6; 0x1f;
+                           (* PSRAD (%_% xmm14) (Imm8 (word 31)) *)
+  0x66; 0x45; 0x0f; 0xdb; 0xf0;
+                           (* PAND (%_% xmm14) (%_% xmm8) *)
+  0x66; 0x45; 0x0f; 0xd4; 0xff;
+                           (* PADDQ (%_% xmm15) (%_% xmm15) *)
+  0x66; 0x45; 0x0f; 0xef; 0xfe;
+                           (* PXOR (%_% xmm15) (%_% xmm14) *)
+  0x66; 0x45; 0x0f; 0xfe; 0xc9;
+                           (* PADDD (%_% xmm9) (%_% xmm9) *)
+  0x45; 0x0f; 0x28; 0xf5;  (* MOVAPS (%_% xmm14) (%_% xmm13) *)
+  0x66; 0x45; 0x0f; 0xef; 0xef;
+                           (* PXOR (%_% xmm13) (%_% xmm15) *)
+  0x66; 0x41; 0x0f; 0x6f; 0xc1;
+                           (* MOVDQA (%_% xmm0) (%_% xmm9) *)
+  0x66; 0x0f; 0x72; 0xe0; 0x1f;
+                           (* PSRAD (%_% xmm0) (Imm8 (word 31)) *)
+  0x66; 0x41; 0x0f; 0xdb; 0xc0;
+                           (* PAND (%_% xmm0) (%_% xmm8) *)
+  0x66; 0x45; 0x0f; 0xd4; 0xff;
+                           (* PADDQ (%_% xmm15) (%_% xmm15) *)
+  0x66; 0x44; 0x0f; 0xef; 0xf8;
+                           (* PXOR (%_% xmm15) (%_% xmm0) *)
+  0x66; 0x45; 0x0f; 0xfe; 0xc9;
+                           (* PADDD (%_% xmm9) (%_% xmm9) *)
+  0x66; 0x45; 0x0f; 0xef; 0xf7;
+                           (* PXOR (%_% xmm14) (%_% xmm15) *)
+  0x66; 0x41; 0x0f; 0x72; 0xe1; 0x1f;
+                           (* PSRAD (%_% xmm9) (Imm8 (word 31)) *)
+  0x66; 0x45; 0x0f; 0xdb; 0xc8;
+                           (* PAND (%_% xmm9) (%_% xmm8) *)
+  0x66; 0x45; 0x0f; 0xd4; 0xff;
+                           (* PADDQ (%_% xmm15) (%_% xmm15) *)
+  0x66; 0x45; 0x0f; 0xef; 0xf9;
+                           (* PXOR (%_% xmm15) (%_% xmm9) *)
+  0x4c; 0x89; 0xd0;        (* MOV (% rax) (% r10) *)
+  0x0f; 0x10; 0x45; 0x00;  (* MOVUPS (%_% xmm0) (Memop Word128 (%% (rbp,0))) *)
+  0x0f; 0x10; 0x4d; 0x10;  (* MOVUPS (%_% xmm1) (Memop Word128 (%% (rbp,16))) *)
+  0x48; 0x8d; 0x76; 0x60;  (* LEA (% rsi) (%% (rsi,96)) *)
+  0x0f; 0x11; 0x56; 0xa0;  (* MOVUPS (Memop Word128 (%% (rsi,18446744073709551520))) (%_% xmm2) *)
+  0x0f; 0x11; 0x5e; 0xb0;  (* MOVUPS (Memop Word128 (%% (rsi,18446744073709551536))) (%_% xmm3) *)
+  0x0f; 0x11; 0x66; 0xc0;  (* MOVUPS (Memop Word128 (%% (rsi,18446744073709551552))) (%_% xmm4) *)
+  0x0f; 0x11; 0x6e; 0xd0;  (* MOVUPS (Memop Word128 (%% (rsi,18446744073709551568))) (%_% xmm5) *)
+  0x0f; 0x11; 0x76; 0xe0;  (* MOVUPS (Memop Word128 (%% (rsi,18446744073709551584))) (%_% xmm6) *)
+  0x0f; 0x11; 0x7e; 0xf0;  (* MOVUPS (Memop Word128 (%% (rsi,18446744073709551600))) (%_% xmm7) *)
+  0x48; 0x83; 0xea; 0x60;  (* SUB (% rdx) (Imm8 (word 96)) *)];;
+
 let aes_hw_xts_encrypt_mc, xts_magic =
   define_coda_literal_from_elf
   "aes_hw_xts_encrypt_mc" "xts_magic"
@@ -131,7 +711,7 @@ let aes_hw_xts_encrypt_mc, xts_magic =
                            (* MOVAPS (Memop Word128 (%% (rsp,96))) (%_% xmm1) *)
   0x48; 0x83; 0xea; 0x60;  (* SUB (% rdx) (Imm8 (word 96)) *)
   0x0f; 0x82; 0x53; 0x03; 0x00; 0x00;
-                           (* JB (Imm32 (word 851)) *)
+                           (* JB (Imm32 (word 851)) -- jc .Lxts_enc_short*)
   0xb8; 0x70; 0x00; 0x00; 0x00;
                            (* MOV (% eax) (Imm32 (word 112)) *)
   0x4a; 0x8d; 0x4c; 0x15; 0x20;
@@ -141,7 +721,7 @@ let aes_hw_xts_encrypt_mc, xts_magic =
   0x49; 0x89; 0xc2;        (* MOV (% r10) (% rax) *)
   0x4c; 0x8d; 0x05; 0x48; 0x08; 0x00; 0x00;
                            (* LEA (% r8) (Riprel (word 2120)) *)
-  0xeb; 0x16;              (* JMP (Imm8 (word 22)) *)
+  0xeb; 0x16;              (* JMP (Imm8 (word 22)) -- jmp .Lxts_enc_grandloop*)
   0x66; 0x66; 0x2e; 0x0f; 0x1f; 0x84; 0x00; 0x00; 0x00; 0x00; 0x00;
                            (* NOP_N (Memop Word (%%% (rax,0,rax))) *)
   0x66; 0x66; 0x2e; 0x0f; 0x1f; 0x84; 0x00; 0x00; 0x00; 0x00; 0x00;
@@ -227,7 +807,7 @@ let aes_hw_xts_encrypt_mc, xts_magic =
                            (* MOVDQA (Memop Word128 (%% (rsp,80))) (%_% xmm8) *)
   0x66; 0x45; 0x0f; 0x70; 0xcf; 0x5f;
                            (* PSHUFD (%_% xmm9) (%_% xmm15) (Imm8 (word 95)) *)
-  0xeb; 0x00;              (* JMP (Imm8 (word 0)) *)
+  0xeb; 0x00;              (* JMP (Imm8 (word 0)) -- .Lxts_enc_loop6 *)
   0x66; 0x0f; 0x38; 0xdc; 0xd1;
                            (* AESENC (%_% xmm2) (%_% xmm1) *)
   0x66; 0x0f; 0x38; 0xdc; 0xd9;
@@ -257,7 +837,7 @@ let aes_hw_xts_encrypt_mc, xts_magic =
                            (* AESENC (%_% xmm7) (%_% xmm0) *)
   0x0f; 0x10; 0x44; 0x01; 0xb0;
                            (* MOVUPS (%_% xmm0) (Memop Word128 (%%%% (rcx,0,rax,-- &80))) *)
-  0x75; 0xb4;              (* JNE (Imm8 (word 180)) *)
+  0x75; 0xb4;              (* JNE (Imm8 (word 180))  -- jnz .Lxts_enc_loop6 *)
   0x66; 0x45; 0x0f; 0x6f; 0x00;
                            (* MOVDQA (%_% xmm8) (Memop Word128 (%% (r8,0))) *)
   0x66; 0x45; 0x0f; 0x6f; 0xf1;
@@ -433,7 +1013,7 @@ let aes_hw_xts_encrypt_mc, xts_magic =
   0x0f; 0x11; 0x7e; 0xf0;  (* MOVUPS (Memop Word128 (%% (rsi,18446744073709551600))) (%_% xmm7) *)
   0x48; 0x83; 0xea; 0x60;  (* SUB (% rdx) (Imm8 (word 96)) *)
   0x0f; 0x83; 0xee; 0xfc; 0xff; 0xff;
-                           (* JAE (Imm32 (word 4294966510)) *)
+                           (* JAE (Imm32 (word 4294966510))  -- jnc .Lxts_enc_grandloop *)
   0xb8; 0x70; 0x00; 0x00; 0x00;
                            (* MOV (% eax) (Imm32 (word 112)) *)
   0x44; 0x29; 0xd0;        (* SUB (% eax) (% r10d) *)
@@ -1018,7 +1598,7 @@ let aes_hw_xts_encrypt_clean_mc, xts_magic_clean =
   0x0f; 0x10; 0x4d; 0x10;  (* MOVUPS (%_% xmm1) (Memop Word128 (%% (rbp,16))) *)
   0x4c; 0x8d; 0x05; 0x68; 0x08; 0x00; 0x00;
                            (* LEA (% r8) (Riprel (word 2152)) *)
-  0xeb; 0x16;              (* JMP (Imm8 (word 22)) *)
+  0xeb; 0x16;              (* JMP (Imm8 (word 22)) -- jmp .Lxts_enc_grandloop *)
   0x66; 0x66; 0x2e; 0x0f; 0x1f; 0x84; 0x00; 0x00; 0x00; 0x00; 0x00;
                            (* NOP_N (Memop Word (%%% (rax,0,rax))) *)
   0x66; 0x66; 0x2e; 0x0f; 0x1f; 0x84; 0x00; 0x00; 0x00; 0x00; 0x00;
@@ -1316,7 +1896,7 @@ let aes_hw_xts_encrypt_clean_mc, xts_magic_clean =
   0x0f; 0x11; 0x7e; 0xf0;  (* MOVUPS (Memop Word128 (%% (rsi,18446744073709551600))) (%_% xmm7) *)
   0x48; 0x83; 0xea; 0x60;  (* SUB (% rdx) (Imm8 (word 96)) *)
   0x0f; 0x83; 0xd0; 0xfc; 0xff; 0xff;
-                           (* JAE (Imm32 (word 4294966480)) *)
+                           (* JAE (Imm32 (word 4294966480)) -- jnc .Lxts_enc_grandloop *)
   0xb8; 0x70; 0x00; 0x00; 0x00;
                            (* MOV (% eax) (Imm32 (word 112)) *)
   0x44; 0x29; 0xd0;        (* SUB (% eax) (% r10d) *)
@@ -1851,7 +2431,6 @@ let aes_xts_eqin = new_definition
       read RDI s1' = in_ptr /\
       read RSI s1 = out_ptr /\
       read RSI s1' = out_ptr /\
-      val len >= 0 /\
       read RDX s1 = len /\
       read RDX s1' = len /\
       read RSP s1 = stack_pointer /\
@@ -1880,9 +2459,14 @@ let aes_xts_eqout = new_definition
   `forall s1 s1' r1 len out_ptr.
     (aes_xts_eqout:(x86state#x86state)->int64->int64->int64->bool)
       (s1,s1') r1 len out_ptr <=>
-     (read RSI s1 = word_add out_ptr (word 16)  /\
-      read RSI s1' = word_add out_ptr (word 16) /\
+     (read RSI s1 = word_add out_ptr len  /\
+      read RSI s1' = word_add out_ptr len /\
       data_block_equiv (s1,s1') out_ptr (val len))`;;
+
+let fnsteps = new_definition
+  `fnsteps (len:int64) (st0:num) (s:x86state) =
+     if val (len:int64) < 96 then st0
+     else 384 + ((val (word_and len (word 18446744073709551600))) DIV 96)*188 + ((val (word_and len (word 18446744073709551600))) DIV 96 - 1)`;;
 
 (* TODO: need to figure out about pc_ofs1/2_to and the step number *)
 let equiv_goal = mk_equiv_statement
@@ -1922,8 +2506,8 @@ let equiv_goal = mk_equiv_statement
               memory :> bytes128 (word_add stack_pointer (word 80));
               memory :> bytes128 (word_add stack_pointer (word 96))] ,,
    MAYCHANGE [RSP; RBP]`
-  `(\s:x86state. 237)`
-  `(\s:x86state. 237)`;;
+  `(\s:x86state. fnsteps len st0 s)`
+  `(\s:x86state. fnsteps len st0 s)`;;
 
 x86_print_log := true;;
 components_print_log := true;;
@@ -2021,8 +2605,14 @@ let load_xts_magic_pc_equiv = prove
   ( `word ((val ((word (pc + 108)):int64)) + 2372) = ((word (pc + 2480)):int64)`,
   CONV_TAC WORD_RULE
    );;
+let load_xts_magic_pc_equiv2 = prove
+  ( `word (val ((word (pc + 360)):int64) + 2120) = ((word (pc + 2480)):int64)`,
+  CONV_TAC WORD_RULE);;
 let load_xts_magic_clean_pc2_equiv = prove
   ( `word ((val ((word (pc2 + 112)):int64)) + 2400) = ((word (pc2 + 2512)):int64)`,
+  CONV_TAC WORD_RULE);;
+let load_xts_magic_clean_pc2_equiv2 = prove
+  ( `word (val ((word (pc2 + 360)):int64) + 2152) = ((word (pc2 + 2512)):int64)`,
   CONV_TAC WORD_RULE);;
 
 let alignment_lemma1 = prove
@@ -2096,10 +2686,56 @@ let org_extra_word_conv = !extra_word_CONV;;
 extra_word_CONV := [WORD_SIMPLE_SUBWORD_CONV] @ !extra_word_CONV;;
 
 let rdx_divisibility = prove(
-  `val (len:int64) >= 0 ==> exists n. n >= 0 /\
-      word_and len (word 18446744073709551600) = word (16 * n)`,
+  `exists m. m >= 0 /\ word_and len (word 18446744073709551600) = word (16 * m)`,
   CHEAT_TAC
 );;
+
+(*  Control Flow
+
+Round down len to multiples of whole blocks and subtract len by 6 blocks
+If len < 0
+Then jump to SHORT
+Else jump to MAIN_LOOP
+
+MAIN_LOOP:
+  Do a bunch of things with the current 6 blocks
+  Subtract len by 6 blocks
+  If len < 0
+  Then jump to SHORT
+  Else jump to MAIN_LOOP
+
+SHORT:
+  If less than one block left
+  Then jump to DONE
+  Else If less than 2 blocks
+  Then jump to ONE
+  Else If less than 3 blocks
+  Then jump to TWO
+  Else If less than 4 blocks
+  Then jump to THREE
+  Else If less than 5 blocks
+  Then jump to FOUR
+  Else treat the 5 blocks and then jump to DONE
+
+ONE:
+  treat one block
+TWO:
+  treat two blocks
+THREE:
+  treat three blocks
+FOUR:
+  treat four blocks
+DONE:
+  treat the tail and return
+*)
+
+(*
+   Loop invariant:
+
+   RSI
+   data_block_equiv of out_ptr
+
+*)
 
 let EQUIV = prove(equiv_goal,
 
@@ -2108,11 +2744,277 @@ let EQUIV = prove(equiv_goal,
               fst AES_HW_XTS_ENCRYPT_EXEC;LENGTH_xts_magic_lemma;
               fst AES_HW_XTS_ENCRYPT_CLEAN_EXEC;LENGTH_xts_magic_clean_lemma] THEN
   CONV_TAC (ONCE_DEPTH_CONV NUM_ADD_CONV) THEN
+  REWRITE_TAC[fnsteps] THEN
+  REWRITE_TAC[MAYCHANGE_REGS_AND_FLAGS_PERMITTED_BY_ABI] THEN
   REPEAT STRIP_TAC THEN
-  REWRITE_TAC[BYTES_LOADED_APPEND_CLAUSE] THEN
-  REWRITE_TAC[fst AES_HW_XTS_ENCRYPT_EXEC; fst AES_HW_XTS_ENCRYPT_CLEAN_EXEC] THEN
-  (* Separate loading of constants *)
-  REWRITE_TAC[BYTES128_LOADED_DATA; BYTES128_LOADED_DATA_CLEAN] THEN
+
+  (** Divide len into whole blocks and less than a block **)
+  SUBGOAL_THEN `val (len:int64) = val (word_and len (word 18446744073709551600)) +
+    val (word_and (word 15) len)` ASSUME_TAC THENL
+  [CHEAT_TAC;ALL_TAC] THEN
+  SUBGOAL_THEN `val (word_and (word 15) (len:int64)) < 16` ASSUME_TAC THENL
+  [CHEAT_TAC;ALL_TAC] THEN
+  ABBREV_TAC `len_blocks = val (word_and (len:int64) (word 18446744073709551600))` THEN
+  POP_ASSUM(fun th -> LABEL_TAC "LEN_BLOCKS_DO_NOT_CLEAR" th) THEN
+  ABBREV_TAC `len_tail = val (word_and (word 15) (len:int64))` THEN
+  POP_ASSUM(fun th -> LABEL_TAC "LEN_TAIL_DO_NOT_CLEAR" th) THEN
+  SUBGOAL_THEN `len_blocks = (len_blocks DIV 96) * 96 + (len_blocks MOD 96)` ASSUME_TAC THENL
+  [IMP_REWRITE_TAC[DIVISION] THEN ARITH_TAC;ALL_TAC] THEN
+  POP_ASSUM(fun th -> LABEL_TAC "X_Y_DO_NOT_CLEAR" th) THEN
+  SUBGOAL_THEN `len_blocks MOD 96 < 96` ASSUME_TAC THENL
+  [IMP_REWRITE_TAC[DIVISION] THEN ARITH_TAC;ALL_TAC] THEN
+  ABBREV_TAC `x = len_blocks DIV 96` THEN
+  POP_ASSUM(fun th -> LABEL_TAC "X_DO_NOT_CLEAR" th) THEN
+  ABBREV_TAC `y = len_blocks MOD 96` THEN
+  POP_ASSUM(fun th -> LABEL_TAC "Y_DO_NOT_CLEAR" th) THEN
+  (** CASE: len < 96, less than 6 blocks **)
+  (**  TODO: update the following for all cases less than 6 blocks **)
+  ASM_CASES_TAC `len_blocks < 96` THENL
+  [ POP_ASSUM(fun th -> LABEL_TAC "cond_len0" th) THEN
+    RULE_ASSUM_TAC(REWRITE_RULE[CONJUNCT1 LE]) THEN
+    ADD_IMP_ASSUM_TAC(WORD_RULE `val (len:int64) = 0 ==> len = (word 0)`) THEN
+    (* MP_TAC (WORD_ARITH `val (len:int64) >= 0`) THEN STRIP_TAC THEN *)
+    EQUIV_INITIATE_TAC aes_xts_eqin THEN
+    EVERY_ASSUM(fun th ->
+     try MP_TAC(GEN_REWRITE_RULE I [key_schedule_equiv;ghost_ymms] th)
+     with Failure _ -> ALL_TAC) THEN
+    REPEAT STRIP_TAC THEN
+    (** Add xts_magic equivalence **)
+    ADD_ASSUM_TAC XTS_MAGIC_EQUIV THEN
+    (* Use cond_len0 to simplify assumptions *)
+    (* USE_THEN "cond_len0" (fun th -> RULE_ASSUM_TAC(SIMP_RULE[th])) THEN
+    RULE_ASSUM_TAC(REWRITE_RULE[VAL_WORD;MOD_0]) THEN *)
+    (* Use cond_len0 to simplify the goal *)
+    ASM_SIMP_TAC[VAL_WORD] THEN DIMINDEX_TAC THEN NUM_REDUCE_TAC THEN
+    EQUIV_STEPS_TAC [
+      ("equal",0,1,0,1);
+      ("replace",1,3,1,3);
+      ("equal",3,5,3,5);
+      ("replace",5,6,5,6);
+      ("equal",6,7,6,7);
+    ] AES_HW_XTS_ENCRYPT_EXEC AES_HW_XTS_ENCRYPT_CLEAN_EXEC THEN
+    (* .Loop_enc1_6 *)
+    AESENC_TAC (7,67) THEN
+    EQUIV_STEPS_TAC [
+      ("equal",72,75,72,75);
+      ("replace",75,79,75,79);
+    ] AES_HW_XTS_ENCRYPT_EXEC AES_HW_XTS_ENCRYPT_CLEAN_EXEC THEN
+    (* rdx divisibility *)
+    (* ADD_ASSUM_TAC rdx_divisibility THEN
+    POP_ASSUM(fun th -> RULE_ASSUM_TAC(REWRITE_RULE[th])) THEN *)
+    EQUIV_STEPS_TAC [
+      ("equal",79,80,79,80);
+    ] AES_HW_XTS_ENCRYPT_EXEC AES_HW_XTS_ENCRYPT_CLEAN_EXEC THEN
+    (* resolving alignment for movdqa *)
+    ADD_IMP_ASSUM_TAC alignment_lemma1 THEN
+    ADD_IMP_ASSUM_TAC alignment_lemma2 THEN
+    (* avoid YMM8 being wrongly dropped from the assumptions *)
+    ADD_ASSUM_TAC load_xts_magic_pc_equiv THEN
+    ADD_ASSUM_TAC load_xts_magic_clean_pc2_equiv THEN
+    EQUIV_STEPS_TAC [
+      ("replace",80,84,80,84);
+    ] AES_HW_XTS_ENCRYPT_EXEC AES_HW_XTS_ENCRYPT_CLEAN_EXEC THEN
+    RULE_ASSUM_TAC (CONV_RULE (TOP_DEPTH_CONV WORD_SIMPLE_SUBWORD_CONV)) THEN
+    FORCE_READ_EQ_TAC `YMM1` THEN
+    FORCE_READ_EQ_TAC `YMM8` THEN FORCE_READ_EQ_TAC `YMM9` THEN
+
+    TWEAK_TAC 84 `YMM10` THEN
+    TWEAK_TAC 92 `YMM11` THEN
+    TWEAK_TAC 100 `YMM12` THEN
+    TWEAK_TAC 108 `YMM13` THEN
+    TWEAK_LAST_TAC 116 `YMM14` THEN
+
+    EQUIV_STEPS_TAC [
+      ("equal",122,123,122,123);
+      ("replace",123,125,123,125);
+    ] AES_HW_XTS_ENCRYPT_EXEC AES_HW_XTS_ENCRYPT_CLEAN_EXEC THEN
+
+    (* .Lxts_enc_short *)
+    EQUIV_STEPS_TAC [
+      ("replace",125,126,125,126);
+      ("equal",126,127,126,127);
+      ("replace",127,129,127,129);
+    ] AES_HW_XTS_ENCRYPT_EXEC AES_HW_XTS_ENCRYPT_CLEAN_EXEC THEN
+
+    (* .Lxts_enc_done *)
+    EQUIV_STEPS_TAC [
+      ("replace",129,131,129,131);
+    ] AES_HW_XTS_ENCRYPT_EXEC AES_HW_XTS_ENCRYPT_CLEAN_EXEC THEN
+
+    (* .Lxts_enc_ret *)
+    EQUIV_STEPS_TAC [
+      ("replace",131,139,131,139);
+    ] AES_HW_XTS_ENCRYPT_EXEC AES_HW_XTS_ENCRYPT_CLEAN_EXEC THEN
+    EQUIV_STEPS_TAC [
+      ("replace", 139,156,139,156);
+    ] AES_HW_XTS_ENCRYPT_EXEC AES_HW_XTS_ENCRYPT_CLEAN_EXEC THEN
+
+    REPEAT_N 2 ENSURES_N_FINAL_STATE_TAC THEN
+    ASM_REWRITE_TAC[] THEN
+    CONJ_TAC THENL [
+      (** SUBGOAL 1. Outputs **)
+      ONCE_ASM_REWRITE_TAC[aes_xts_eqout] THEN
+      ONCE_ASM_REWRITE_TAC[data_block_equiv] THEN
+      ASM_SIMP_TAC[VAL_WORD] THEN DIMINDEX_TAC THEN NUM_REDUCE_TAC THEN
+      REWRITE_TAC[WORD_ADD_0] THEN
+      (* TODO: need to prove
+        `exists n.
+           read (memory :> bytes (out_ptr,0)) s156 = n /\
+           read (memory :> bytes (out_ptr,0)) s156' = n`
+      *)
+      CHEAT_TAC THEN
+      REPEAT (HINT_EXISTS_REFL_TAC THEN ASM_REWRITE_TAC[]);
+      (** SUBGOAL 2. Maychange pair **)
+      REWRITE_TAC[MAYCHANGE_REGS_AND_FLAGS_PERMITTED_BY_ABI] THEN
+      MONOTONE_MAYCHANGE_CONJ_TAC
+    ]; ALL_TAC
+  ] THEN
+  (** CASE: len >= 96, equal or more than 6 blocks **)
+  REMOVE_THEN "X_Y_DO_NOT_CLEAR" (fun th -> RULE_ASSUM_TAC(SIMP_RULE[th]) THEN ASSUME_TAC th) THEN
+  SUBGOAL_THEN `~(val (len:int64) < 96)` ASSUME_TAC THENL [ASM_ARITH_TAC; ALL_TAC] THEN
+  ASM_SIMP_TAC[] THEN
+  ENSURES2_WHILE_PAUP_TAC
+    `0` `(x:num)`
+    `pc + 0x180` `pc + 0x48C` `pc2 + 0x180` `pc2 + 0x4AA`
+    `\(i:num) (s1:x86state) (s2:x86state). 
+        read RSI s1 = word_add out_ptr (word (i * 96))  /\
+        read RSI s2 = word_add out_ptr (word (i * 96)) /\
+        data_block_equiv (s1,s2) out_ptr (i * 96)`
+    `\(i:num) s. read CF s <=> (word i:int64) = word ((val (word_and (len:int64) (word 18446744073709551600))) DIV 96 - 1)`
+    `\(i:num) s. read CF s <=> (word i:int64) = word ((val (word_and (len:int64) (word 18446744073709551600))) DIV 96 - 1)`
+    `\(i:num). 188`
+    `\(i:num). 188`
+    `132` `132` `0` `0` `1` `1` THEN
+    REPEAT CONJ_TAC THENL [
+      (** Proving x > 0 **)
+      ASM_ARITH_TAC;
+
+      (** Proving precond ==> inv **)
+      (* Separate loading of constants *)
+      REWRITE_TAC[BYTES_LOADED_APPEND_CLAUSE] THEN
+      REWRITE_TAC[fst AES_HW_XTS_ENCRYPT_EXEC; fst AES_HW_XTS_ENCRYPT_CLEAN_EXEC] THEN
+      REWRITE_TAC[BYTES128_LOADED_DATA; BYTES128_LOADED_DATA_CLEAN] THEN
+      (* Initialization *)
+      EQUIV_INITIATE_TAC aes_xts_eqin THEN
+      EVERY_ASSUM(fun th ->
+       try MP_TAC(GEN_REWRITE_RULE I [key_schedule_equiv;ghost_ymms] th)
+       with Failure _ -> ALL_TAC) THEN
+      REPEAT STRIP_TAC THEN
+      (** Add xts_magic equivalence **)
+      ADD_ASSUM_TAC XTS_MAGIC_EQUIV THEN
+      (* Start symbolic simulation *)
+      EQUIV_STEPS_TAC [
+        ("equal",0,1,0,1);
+        ("replace",1,3,1,3);
+        ("equal",3,5,3,5);
+        ("replace",5,6,5,6);
+        ("equal",6,7,6,7);
+      ] AES_HW_XTS_ENCRYPT_EXEC AES_HW_XTS_ENCRYPT_CLEAN_EXEC THEN
+      (* .Loop_enc1_6 *)
+      AESENC_TAC (7,67) THEN
+      EQUIV_STEPS_TAC [
+        ("equal",72,75,72,75);
+        ("replace",75,79,75,79);
+      ] AES_HW_XTS_ENCRYPT_EXEC AES_HW_XTS_ENCRYPT_CLEAN_EXEC THEN
+      EQUIV_STEPS_TAC [
+        ("equal",79,80,79,80);
+      ] AES_HW_XTS_ENCRYPT_EXEC AES_HW_XTS_ENCRYPT_CLEAN_EXEC THEN
+      (* resolving alignment for movdqa *)
+      ADD_IMP_ASSUM_TAC alignment_lemma1 THEN
+      ADD_IMP_ASSUM_TAC alignment_lemma2 THEN
+      (* avoid YMM8 being wrongly dropped from the assumptions *)
+      ADD_ASSUM_TAC load_xts_magic_pc_equiv THEN
+      ADD_ASSUM_TAC load_xts_magic_clean_pc2_equiv THEN
+      EQUIV_STEPS_TAC [
+        ("replace",80,84,80,84);
+      ] AES_HW_XTS_ENCRYPT_EXEC AES_HW_XTS_ENCRYPT_CLEAN_EXEC THEN
+      RULE_ASSUM_TAC (CONV_RULE (TOP_DEPTH_CONV WORD_SIMPLE_SUBWORD_CONV)) THEN
+      FORCE_READ_EQ_TAC `YMM1` THEN
+      FORCE_READ_EQ_TAC `YMM8` THEN FORCE_READ_EQ_TAC `YMM9` THEN
+
+      TWEAK_TAC 84 `YMM10` THEN
+      TWEAK_TAC 92 `YMM11` THEN
+      TWEAK_TAC 100 `YMM12` THEN
+      TWEAK_TAC 108 `YMM13` THEN
+      TWEAK_LAST_TAC 116 `YMM14` THEN
+
+      EQUIV_STEPS_TAC [
+        ("equal",122,123,122,123);
+        ("replace",123,125,123,125);
+      ] AES_HW_XTS_ENCRYPT_EXEC AES_HW_XTS_ENCRYPT_CLEAN_EXEC THEN
+
+      EQUIV_STEPS_TAC [
+        ("replace",125,132,125,132);
+      ] AES_HW_XTS_ENCRYPT_EXEC AES_HW_XTS_ENCRYPT_CLEAN_EXEC THEN
+
+      REPEAT_N 2 ENSURES_N_FINAL_STATE_TAC THEN
+      ASM_REWRITE_TAC[] THEN
+      CONJ_TAC THENL [
+        (** SUBGOAL 1. Outputs **)
+        ASM_REWRITE_TAC[aes_xts_eqout] THEN
+        ONCE_REWRITE_TAC[data_block_equiv] THEN
+        NUM_REDUCE_TAC THEN REWRITE_TAC[WORD_ADD_0] THEN
+        (* TODO: prove
+        `exists n.
+     read (memory :> bytes (out_ptr,0)) s132 = n /\
+     read (memory :> bytes (out_ptr,0)) s132' = n`
+        *)
+        CHEAT_TAC
+        ;
+        (** SUBGOAL 2. Maychange pair **)
+        MONOTONE_MAYCHANGE_CONJ_TAC
+      ];
+
+      (** Proving loop body **)
+      REPEAT STRIP_TAC THEN
+      (* Separate loading of constants *)
+      REWRITE_TAC[BYTES_LOADED_APPEND_CLAUSE] THEN
+      REWRITE_TAC[fst AES_HW_XTS_ENCRYPT_EXEC; fst AES_HW_XTS_ENCRYPT_CLEAN_EXEC] THEN
+      REWRITE_TAC[BYTES128_LOADED_DATA; BYTES128_LOADED_DATA_CLEAN] THEN
+      (* Initialization *)
+      EQUIV_INITIATE_TAC aes_xts_eqin THEN
+      EVERY_ASSUM(fun th ->
+       try MP_TAC(GEN_REWRITE_RULE I [key_schedule_equiv;ghost_ymms] th)
+       with Failure _ -> ALL_TAC) THEN
+      REPEAT STRIP_TAC THEN
+      (** Add xts_magic equivalence **)
+      ADD_ASSUM_TAC XTS_MAGIC_EQUIV THEN
+
+      ;
+
+      CHEAT_TAC;
+      CHEAT_TAC;
+      CHEAT_TAC;
+      CHEAT_TAC;
+    ]
+
+
+
+
+  EQUIV_INITIATE_TAC aes_xts_eqin THEN
+  EVERY_ASSUM(fun th ->
+    try MP_TAC(GEN_REWRITE_RULE I [key_schedule_equiv;ghost_ymms] th)
+    with Failure _ -> ALL_TAC) THEN
+  REPEAT STRIP_TAC THEN
+  (** Add xts_magic equivalence **)
+  ADD_ASSUM_TAC XTS_MAGIC_EQUIV THEN
+  EQUIV_STEPS_TAC [
+    ("equal",0,1,0,1);
+    ("replace",1,3,1,3);
+    ("equal",3,5,3,5);
+    ("replace",5,6,5,6);
+    ("equal",6,7,6,7);
+  ] AES_HW_XTS_ENCRYPT_EXEC AES_HW_XTS_ENCRYPT_CLEAN_EXEC THEN
+  (* .Loop_enc1_6 *)
+  AESENC_TAC (7,67) THEN
+  EQUIV_STEPS_TAC [
+    ("equal",72,75,72,75);
+    ("replace",75,79,75,79);
+  ] AES_HW_XTS_ENCRYPT_EXEC AES_HW_XTS_ENCRYPT_CLEAN_EXEC THEN
+
+
+
+
 
   (** Initialize **)
   EQUIV_INITIATE_TAC aes_xts_eqin THEN
@@ -2163,15 +3065,24 @@ let EQUIV = prove(equiv_goal,
   TWEAK_LAST_TAC 116 `YMM14` THEN
 
   EQUIV_STEPS_TAC [
-    ("equal",116,117,116,117);
-    ("replace",117,119,117,119);
+    ("equal",122,123,122,123);
+    ("replace",123,125,123,125);
   ] AES_HW_XTS_ENCRYPT_EXEC AES_HW_XTS_ENCRYPT_CLEAN_EXEC THEN
 
   (** Control flow, test if less than 6 blocks of data **)
-  ASM_CASES_TAC `val ((word (16 * n)):int64) < 96` THENL 
+  ASM_CASES_TAC `val ((word (16 * m)):int64) < 96` THENL
   [ POP_ASSUM(fun th -> RULE_ASSUM_TAC(REWRITE_RULE[th]) THEN ASSUME_TAC th) THEN CHEAT_TAC;
-    POP_ASSUM(fun th -> RULE_ASSUM_TAC(SIMP_RULE[th]) THEN ASSUME_TAC th) THEN CHEAT_TAC ]
-    
+    POP_ASSUM(fun th -> RULE_ASSUM_TAC(SIMP_RULE[th]) THEN ASSUME_TAC th) THEN
+    ADD_ASSUM_TAC load_xts_magic_pc_equiv2 THEN
+    ADD_ASSUM_TAC load_xts_magic_clean_pc2_equiv2 THEN
+    EQUIV_STEPS_TAC [
+      ("replace",125,126,125,126);
+      ("equal",126,127,126,127);
+      ("replace",127,131,127,131);
+      ("replace",131,132,131,132);
+    ] AES_HW_XTS_ENCRYPT_EXEC AES_HW_XTS_ENCRYPT_CLEAN_EXEC THEN
+    (* .Lxts_enc_grandloop *)
+
   (* .Lxts_enc_short *)
   EQUIV_STEPS_TAC [
     ("replace",125,126,125,126);

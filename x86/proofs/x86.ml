@@ -2750,7 +2750,14 @@ let X86_THM =
     ASM_MESON_TAC[PAIR_EQ; x86_decode_unique]) in
   let _ = print_string "in x86_thm\n" in
   fun (execth2:thm option array) loaded_mc_th pc_th ->
+    let _ = print_string "loaded_mc_th: " in
+    let _ = print_thm loaded_mc_th in
+    let _ = print_string "\n" in
+    let _ = print_string "pc_th: " in
+    let _ = print_thm pc_th in
+    let _ = print_string "\n" in
     let th = MATCH_MP pth pc_th in
+    let _ = print_thm th in
     let _ = print_string "in x86_thm, match_mp\n" in
     let pc_ofs:int =
       let pc_expr = snd (dest_comb (snd (dest_eq (concl pc_th)))) in
@@ -2884,6 +2891,7 @@ let X86_CONV (decode_ths:thm option array) ths tm =
           (if the_mc <> None then string_of_term (Option.get the_mc) else "..")
           ^ "` from ths")
     else res in
+  let _ = List.map print_thm bytes_loaded_mc_ths in
 
   let _ = print_string "In X86_CONV, after bytes_loaded\n" in
   let eth = tryfind (fun loaded_mc_th ->
