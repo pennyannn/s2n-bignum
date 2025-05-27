@@ -73,6 +73,8 @@ endif
 
 # List of object files for point operations and bignum operations
 
+# POINT_OBJ =  curve25519/edwards25519_scalarmuldouble.o
+
 POINT_OBJ = curve25519/curve25519_ladderstep.o \
             curve25519/curve25519_ladderstep_alt.o \
             curve25519/curve25519_pxscalarmul.o \
@@ -137,7 +139,10 @@ POINT_OBJ = curve25519/curve25519_ladderstep.o \
             sm2/sm2_montjmixadd.o \
             sm2/sm2_montjmixadd_alt.o \
             sm2/sm2_montjscalarmul.o \
-            sm2/sm2_montjscalarmul_alt.o
+            sm2/sm2_montjscalarmul_alt.o \
+
+# BIGNUM_OBJ =  mlkem/mlkem_keccak_f1600.o  \
+#               mlkem/mlkem_keccak_f1600_obj.o  
 
 BIGNUM_OBJ = curve25519/bignum_add_p25519.o \
              curve25519/bignum_cmul_p25519.o \
@@ -388,7 +393,9 @@ BIGNUM_OBJ = curve25519/bignum_add_p25519.o \
              sm2/bignum_sub_sm2.o \
              sm2/bignum_tomont_sm2.o \
              sm2/bignum_triple_sm2.o \
-             sm2/bignum_triple_sm2_alt.o
+             sm2/bignum_triple_sm2_alt.o \
+             mlkem/mlkem_keccak_f1600_obj.o \
+             mlkem/mlkem_keccak_f1600_macros.o \
 
 OBJ = $(POINT_OBJ) $(BIGNUM_OBJ)
 
@@ -460,39 +467,39 @@ proofs/simulator.native: proofs/simulator.ml ; ../tools/build-proof.sh proofs/si
 
 # Cases where a proof uses other proofs for lemmas and/or subroutines
 
-curve25519/curve25519_x25519.native: curve25519/bignum_inv_p25519.native
-curve25519/curve25519_x25519_alt.native: curve25519/bignum_inv_p25519.native
-curve25519/curve25519_x25519_byte.native: curve25519/bignum_inv_p25519.native
-curve25519/curve25519_x25519_byte_alt.native: curve25519/bignum_inv_p25519.native
-curve25519/curve25519_x25519base.native: curve25519/bignum_inv_p25519.native
-curve25519/curve25519_x25519base_alt.native: curve25519/bignum_inv_p25519.native
-curve25519/curve25519_x25519base_byte.native: curve25519/bignum_inv_p25519.native
-curve25519/curve25519_x25519base_byte_alt.native: curve25519/bignum_inv_p25519.native
-curve25519/edwards25519_scalarmulbase.native: curve25519/bignum_inv_p25519.native
-curve25519/edwards25519_scalarmulbase_alt.native: curve25519/bignum_inv_p25519.native
-curve25519/edwards25519_scalarmuldouble.native: curve25519/bignum_inv_p25519.native
-curve25519/edwards25519_scalarmuldouble_alt.native: curve25519/bignum_inv_p25519.native
-generic/bignum_modexp.native: generic/bignum_amontifier.native generic/bignum_amontmul.native generic/bignum_demont.native generic/bignum_mux.native
-p256/p256_montjadd.native: p256/bignum_montsqr_p256.native p256/bignum_montmul_p256.native p256/bignum_sub_p256.native
-p256/p256_montjdouble.native: p256/bignum_montsqr_p256.native p256/bignum_montmul_p256.native p256/bignum_sub_p256.native p256/bignum_add_p256.native
-p256/p256_montjscalarmul.native: p256/p256_montjadd.native p256/p256_montjdouble.native
-p256/p256_montjscalarmul_alt.native: p256/p256_montjadd_alt.native p256/p256_montjdouble_alt.native
-p256/p256_scalarmul.native: p256/bignum_demont_p256.native p256/bignum_inv_p256.native p256/bignum_tomont_p256.native p256/p256_montjadd.native p256/p256_montjdouble.native p256/p256_montjmixadd.native
-p256/p256_scalarmul_alt.native: p256/bignum_demont_p256.native p256/bignum_inv_p256.native p256/p256_montjadd_alt.native p256/p256_montjdouble_alt.native p256/p256_montjmixadd_alt.native
-p256/p256_scalarmulbase.native: p256/bignum_demont_p256.native p256/bignum_inv_p256.native p256/p256_montjmixadd.native
-p256/p256_scalarmulbase_alt.native: p256/bignum_demont_p256.native p256/bignum_inv_p256.native p256/p256_montjmixadd_alt.native
-p384/p384_montjadd.native: p384/bignum_montsqr_p384.native p384/bignum_montmul_p384.native p384/bignum_sub_p384.native
-p384/p384_montjdouble.native: p384/bignum_montsqr_p384.native p384/bignum_montmul_p384.native p384/bignum_sub_p384.native p384/bignum_add_p384.native
-p384/p384_montjscalarmul.native: \
-    p384/p384_montjadd.native p384/p384_montjdouble.native \
-    p384/bignum_sub_p384.native p384/bignum_add_p384.native
-p384/p384_montjscalarmul_alt.native: p384/p384_montjadd_alt.native p384/p384_montjdouble_alt.native
-p521/p521_jadd.native: p521/bignum_mul_p521.native p521/bignum_sqr_p521.native
-p521/p521_jdouble.native: p521/bignum_mul_p521.native p521/bignum_sqr_p521.native
-p521/p521_jscalarmul.native: p521/bignum_mod_n521_9.native p521/p521_jadd.native p521/p521_jdouble.native
-p521/p521_jscalarmul_alt.native: p521/bignum_mod_n521_9.native
-sm2/sm2_montjscalarmul.native: sm2/sm2_montjadd.native sm2/sm2_montjdouble.native
-sm2/sm2_montjscalarmul_alt.native: sm2/sm2_montjadd_alt.native sm2/sm2_montjdouble_alt.native
+# curve25519/curve25519_x25519.native: curve25519/bignum_inv_p25519.native
+# curve25519/curve25519_x25519_alt.native: curve25519/bignum_inv_p25519.native
+# curve25519/curve25519_x25519_byte.native: curve25519/bignum_inv_p25519.native
+# curve25519/curve25519_x25519_byte_alt.native: curve25519/bignum_inv_p25519.native
+# curve25519/curve25519_x25519base.native: curve25519/bignum_inv_p25519.native
+# curve25519/curve25519_x25519base_alt.native: curve25519/bignum_inv_p25519.native
+# curve25519/curve25519_x25519base_byte.native: curve25519/bignum_inv_p25519.native
+# curve25519/curve25519_x25519base_byte_alt.native: curve25519/bignum_inv_p25519.native
+# curve25519/edwards25519_scalarmulbase.native: curve25519/bignum_inv_p25519.native
+# curve25519/edwards25519_scalarmulbase_alt.native: curve25519/bignum_inv_p25519.native
+# curve25519/edwards25519_scalarmuldouble.native: curve25519/bignum_inv_p25519.native
+# curve25519/edwards25519_scalarmuldouble_alt.native: curve25519/bignum_inv_p25519.native
+# generic/bignum_modexp.native: generic/bignum_amontifier.native generic/bignum_amontmul.native generic/bignum_demont.native generic/bignum_mux.native
+# p256/p256_montjadd.native: p256/bignum_montsqr_p256.native p256/bignum_montmul_p256.native p256/bignum_sub_p256.native
+# p256/p256_montjdouble.native: p256/bignum_montsqr_p256.native p256/bignum_montmul_p256.native p256/bignum_sub_p256.native p256/bignum_add_p256.native
+# p256/p256_montjscalarmul.native: p256/p256_montjadd.native p256/p256_montjdouble.native
+# p256/p256_montjscalarmul_alt.native: p256/p256_montjadd_alt.native p256/p256_montjdouble_alt.native
+# p256/p256_scalarmul.native: p256/bignum_demont_p256.native p256/bignum_inv_p256.native p256/bignum_tomont_p256.native p256/p256_montjadd.native p256/p256_montjdouble.native p256/p256_montjmixadd.native
+# p256/p256_scalarmul_alt.native: p256/bignum_demont_p256.native p256/bignum_inv_p256.native p256/p256_montjadd_alt.native p256/p256_montjdouble_alt.native p256/p256_montjmixadd_alt.native
+# p256/p256_scalarmulbase.native: p256/bignum_demont_p256.native p256/bignum_inv_p256.native p256/p256_montjmixadd.native
+# p256/p256_scalarmulbase_alt.native: p256/bignum_demont_p256.native p256/bignum_inv_p256.native p256/p256_montjmixadd_alt.native
+# p384/p384_montjadd.native: p384/bignum_montsqr_p384.native p384/bignum_montmul_p384.native p384/bignum_sub_p384.native
+# p384/p384_montjdouble.native: p384/bignum_montsqr_p384.native p384/bignum_montmul_p384.native p384/bignum_sub_p384.native p384/bignum_add_p384.native
+# p384/p384_montjscalarmul.native: \
+#     p384/p384_montjadd.native p384/p384_montjdouble.native \
+#     p384/bignum_sub_p384.native p384/bignum_add_p384.native
+# p384/p384_montjscalarmul_alt.native: p384/p384_montjadd_alt.native p384/p384_montjdouble_alt.native
+# p521/p521_jadd.native: p521/bignum_mul_p521.native p521/bignum_sqr_p521.native
+# p521/p521_jdouble.native: p521/bignum_mul_p521.native p521/bignum_sqr_p521.native
+# p521/p521_jscalarmul.native: p521/bignum_mod_n521_9.native p521/p521_jadd.native p521/p521_jdouble.native
+# p521/p521_jscalarmul_alt.native: p521/bignum_mod_n521_9.native
+# sm2/sm2_montjscalarmul.native: sm2/sm2_montjadd.native sm2/sm2_montjdouble.native
+# sm2/sm2_montjscalarmul_alt.native: sm2/sm2_montjadd_alt.native sm2/sm2_montjdouble_alt.native
 mlkem/mlkem_keccak_f1600.native: mlkem/mlkem_keccak_f1600.native
 
 # Tutorial
