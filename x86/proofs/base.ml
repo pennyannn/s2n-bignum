@@ -31,14 +31,33 @@ loadt "common/for_hollight.ml";;
 loadt "common/words2.ml";;
 loadt "common/misc.ml";;
 loadt "common/components.ml";;
+loadt "common/alignment.ml";;
 loadt "common/records.ml";;
 loadt "common/relational.ml";;
 loadt "common/interval.ml";;
 loadt "common/elf.ml";;
 
+(* ------------------------------------------------------------------------- *)
+(* Additional Cryptographic AES intrinsics                                   *)
+(* ------------------------------------------------------------------------- *)
+
+loadt "x86/proofs/aes.ml";;
+extra_word_CONV := [AESENC_REDUCE_CONV;
+                    AESENCLAST_REDUCE_CONV;
+                    AESDEC_REDUCE_CONV;
+                    AESDECLAST_REDUCE_CONV;
+                    AESKEYGENASSIST_REDUCE_CONV]
+                    @ (!extra_word_CONV);;
+
+(* ------------------------------------------------------------------------- *)
+(* The main x86_64 model.                                                    *)
+(* ------------------------------------------------------------------------- *)
+
 loadt "x86/proofs/instruction.ml";;
 loadt "x86/proofs/decode.ml";;
 loadt "x86/proofs/x86.ml";;
+(* Reduce reads of YMMx_SSE into reads of YMMx by default *)
+extra_word_CONV := [GEN_REWRITE_CONV I READ_YMM_SSE_EQUIV] @ !extra_word_CONV;;
 
 prioritize_int();;
 prioritize_real();;

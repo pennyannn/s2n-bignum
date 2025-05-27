@@ -5,7 +5,7 @@
 // Inverse square root modulo p_25519 = 2^255 - 19
 // Input x[4]; output function return (Legendre symbol) and z[4]
 //
-// extern int64_t bignum_invsqrt_p25519(uint64_t z[static 4],uint64_t x[static 4]);
+// extern int64_t bignum_invsqrt_p25519(uint64_t z[static 4],const uint64_t x[static 4]);
 //
 // Given a 4-digit input x, returns a modular inverse square root mod p_25519,
 // i.e. a z such that x * z^2 == 1 (mod p_25519), whenever one exists. The
@@ -50,23 +50,23 @@
 // Loading large constants
 
 #define movbig(nn,n3,n2,n1,n0)                                      \
-        movz    nn, n0;                                             \
-        movk    nn, n1, lsl #16;                                    \
-        movk    nn, n2, lsl #32;                                    \
+        movz    nn, n0 __LF                                            \
+        movk    nn, n1, lsl #16 __LF                                   \
+        movk    nn, n2, lsl #32 __LF                                   \
         movk    nn, n3, lsl #48
 
 // Macros wrapping up calls to the local subroutines
 
 #define mulp(dest,src1,src2)                                            \
-        add     x0, dest;                                               \
-        add     x1, src1;                                               \
-        add     x2, src2;                                               \
+        add     x0, dest __LF                                              \
+        add     x1, src1 __LF                                              \
+        add     x2, src2 __LF                                              \
         bl      bignum_invsqrt_p25519_mul_p25519
 
 #define nsqr(dest,n,src)                                                \
-        add     x0, dest;                                               \
-        mov     x1, n;                                                  \
-        add     x2, src;                                                \
+        add     x0, dest __LF                                              \
+        mov     x1, n __LF                                                 \
+        add     x2, src __LF                                               \
         bl      bignum_invsqrt_p25519_nsqr_p25519
 
 S2N_BN_SYMBOL(bignum_invsqrt_p25519):

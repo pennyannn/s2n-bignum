@@ -5,8 +5,7 @@
 // Reduce modulo group order, z := x mod n_521
 // Input x[9]; output z[9]
 //
-//    extern void bignum_mod_n521_9
-//      (uint64_t z[static 9], uint64_t x[static 9]);
+//    extern void bignum_mod_n521_9(uint64_t z[static 9], const uint64_t x[static 9]);
 //
 // Reduction is modulo the group order of the NIST curve P-521.
 //
@@ -47,9 +46,9 @@
 #define t d7
 
 #define movbig(nn,n3,n2,n1,n0)                                              \
-        movz    nn, n0;                                             \
-        movk    nn, n1, lsl #16;                                    \
-        movk    nn, n2, lsl #32;                                    \
+        movz    nn, n0 __LF                                            \
+        movk    nn, n1, lsl #16 __LF                                   \
+        movk    nn, n2, lsl #32 __LF                                   \
         movk    nn, n3, lsl #48
 
 S2N_BN_SYMBOL(bignum_mod_n521_9):

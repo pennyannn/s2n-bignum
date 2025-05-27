@@ -7,9 +7,9 @@
 //
 // extern void p256_scalarmulbase
 //   (uint64_t res[static 8],
-//    uint64_t scalar[static 4],
+//    const uint64_t scalar[static 4],
 //    uint64_t blocksize,
-//    uint64_t *table);
+//    const uint64_t *table);
 //
 // Given scalar = n and point = P, assumed to be on the NIST elliptic
 // curve P-256, the input argument "table" is expected to be a table of
@@ -64,9 +64,9 @@
 // Loading large constants
 
 #define movbig(nn,n3,n2,n1,n0)                                      \
-        movz    nn, n0;                                             \
-        movk    nn, n1, lsl #16;                                    \
-        movk    nn, n2, lsl #32;                                    \
+        movz    nn, n0 __LF                                            \
+        movk    nn, n1, lsl #16 __LF                                   \
+        movk    nn, n2, lsl #32 __LF                                   \
         movk    nn, n3, lsl #48
 
 S2N_BN_SYMBOL(p256_scalarmulbase):

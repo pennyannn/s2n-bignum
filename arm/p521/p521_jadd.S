@@ -4,8 +4,8 @@
 // ----------------------------------------------------------------------------
 // Point addition on NIST curve P-521 in Jacobian coordinates
 //
-//    extern void p521_jadd
-//      (uint64_t p3[static 27],uint64_t p1[static 27],uint64_t p2[static 27]);
+//    extern void p521_jadd(uint64_t p3[static 27], const uint64_t p1[static 27],
+//                          const uint64_t p2[static 27]);
 //
 // Does p3 := p1 + p2 where all points are regarded as Jacobian triples.
 // A Jacobian triple (x,y,z) represents affine point (x/z^2,y/z^3).
@@ -84,20 +84,20 @@
 // and bignum_sub_p521
 
 #define mul_p521(P0,P1,P2)                      \
-        add     x0, P0;                         \
-        add     x1, P1;                         \
-        add     x2, P2;                         \
+        add     x0, P0 __LF                        \
+        add     x1, P1 __LF                        \
+        add     x2, P2 __LF                        \
         bl      p521_jadd_local_mul_p521
 
 #define sqr_p521(P0,P1)                         \
-        add     x0, P0;                         \
-        add     x1, P1;                         \
+        add     x0, P0 __LF                        \
+        add     x1, P1 __LF                        \
         bl      p521_jadd_local_sqr_p521
 
 #define sub_p521(P0,P1,P2)                      \
-        add     x0, P0;                         \
-        add     x1, P1;                         \
-        add     x2, P2;                         \
+        add     x0, P0 __LF                        \
+        add     x1, P1 __LF                        \
+        add     x2, P2 __LF                        \
         bl      p521_jadd_local_sub_p521
 
 S2N_BN_SYMBOL(p521_jadd):

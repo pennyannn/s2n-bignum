@@ -453,10 +453,6 @@ proofs/simulator.native: proofs/simulator.ml ; ../tools/build-proof.sh proofs/si
 
 .SECONDEXPANSION:
 %.native: proofs/$$(*F).ml %.o %.obj ; ../tools/build-proof.sh "$<" "$(HOLLIGHT)" "$@"
-# Additional dependencies on .o files
-tutorial/rel_simp.native: tutorial/rel_simp2.o
-tutorial/rel_equivtac.native: tutorial/rel_equivtac2.o
-tutorial/rel_reordertac.native: tutorial/rel_reordertac2.o
 
 # Run them and print the standard output+error at *.correct
 
@@ -505,6 +501,8 @@ mlkem/mlkem_keccak_f1600.native: mlkem/mlkem_keccak_f1600.native
 tutorial/%.native: tutorial/%.ml tutorial/%.o ; ../tools/build-proof.sh "$<" "$(HOLLIGHT)" "$@"
 # Additional dependencies on .o files
 tutorial/rel_simp.native: tutorial/rel_simp2.o
+tutorial/rel_equivtac.native: tutorial/rel_equivtac2.o tutorial/rel_equivtac_sse.o
+tutorial/rel_reordertac.native: tutorial/rel_reordertac2.o
 
 
 build_proofs: $(PROOF_BINS);

@@ -88,7 +88,20 @@ let ARM_DECODES_THM =
       decodes;;
 
 let ARM_MK_EXEC_RULE th0: thm * (thm option array) =
-  let th0 = INST [`pc':num`,`pc:num`] (SPEC_ALL th0) in
+  let reloc_op_convert_th = prove(
+    `forall (x:num) y.
+      CONS (word (x MOD 256):(8)word)
+        (CONS (word ((x DIV 256) MOD 256):(8)word)
+          (CONS (word ((x DIV 256 DIV 256) MOD 256):(8)word)
+            (CONS (word ((x DIV 256 DIV 256 DIV 256) MOD 256):(8)word)
+              y)))
+      = APPEND (bytelist_of_num 4 x) y`,
+    REPEAT GEN_TAC THEN
+    CONV_TAC (RAND_CONV (TOP_DEPTH_CONV num_CONV)) THEN
+    REWRITE_TAC[bytelist_of_num;APPEND]) in
+
+  let th0 = INST [`pc':num`,`pc:num`] (SPEC_ALL
+    (PURE_REWRITE_RULE[reloc_op_convert_th] th0)) in
   let th1 = AP_TERM `LENGTH:byte list->num` th0 in
   let th2 =
     (REWRITE_CONV [LENGTH_BYTELIST_OF_NUM; LENGTH_BYTELIST_OF_INT;
@@ -158,6 +171,7 @@ let OFFSET_ADDRESS_CLAUSES = prove
    offset_address (Shiftreg_Offset r 2) s = word(4 * val(read r s)) /\
    offset_address (Shiftreg_Offset r 3) s = word(8 * val(read r s)) /\
    offset_address (Shiftreg_Offset r 4) s = word(16 * val(read r s)) /\
+   offset_address (Postreg_Offset r) s = word 0 /\
    offset_address (Immediate_Offset w) s = w /\
    offset_address (Preimmediate_Offset w) s = w /\
    offset_address (Postimmediate_Offset w) s = word 0`,
@@ -276,7 +290,7 @@ let ARM_EXEC_CONV =
      word_sub x (word n)`, CONV_TAC WORD_RULE) in
   ((GEN_REWRITE_CONV I ARM_LOAD_STORE_CLAUSES THENC
     REWRITE_CONV [offset_writesback; offset_writeback;
-                  OFFSET_ADDRESS_CLAUSES] THENC
+                  no_offset; OFFSET_ADDRESS_CLAUSES] THENC
     ONCE_DEPTH_CONV(EQT_INTRO o ORTHOGONAL_COMPONENTS_CONV) THENC
     REWRITE_CONV[] THENC
     ONCE_DEPTH_CONV(LAND_CONV DIMINDEX_CONV THENC NUM_DIV_CONV) THENC
@@ -317,61 +331,6 @@ let XREG_NE_SP = prove
   DISCH_THEN(MP_TAC o SPECL [`word 0:int64`; `word 1:int64`]) THEN
   CONV_TAC(DEPTH_CONV COMPONENT_READ_OVER_WRITE_CONV) THEN
   REWRITE_TAC[WORD_NE_10]);;
-
-let NORMALIZE_ALIGNED_16_CONV =
-  let pth = prove
-   (`(!n x:int64.
-      16 divides n ==> (aligned 16 (word_add x (word n)) <=> aligned 16 x)) /\
-     (!n x:int64.
-      16 divides n ==> (aligned 16 (word_add (word n) x) <=> aligned 16 x)) /\
-     (!n x:int64.
-      16 divides n ==> (aligned 16 (word_sub x (word n)) <=> aligned 16 x)) /\
-     (!n x:int64.
-      16 divides n ==> (aligned 16 (word_sub (word n) x) <=> aligned 16 x))`,
-    REPEAT STRIP_TAC THEN FIRST (map MATCH_MP_TAC
-     (CONJUNCTS ALIGNED_WORD_ADD_EQ @ CONJUNCTS ALIGNED_WORD_SUB_EQ)) THEN
-    ASM_REWRITE_TAC[ALIGNED_WORD; DIMINDEX_64] THEN
-    CONV_TAC NUM_REDUCE_CONV THEN CONV_TAC DIVIDES_CONV) in
-  let funs = map (PART_MATCH (lhs o rand)) (CONJUNCTS pth) in
-  let conv tm =
-    try let th = tryfind (fun f -> f tm) funs in
-        MP th (EQT_ELIM(DIVIDES_CONV(lhand(concl th))))
-    with Failure _ -> failwith ""
-  and ptm = `aligned 16 :int64->bool` in
-  fun tm ->
-    if is_comb tm && rator tm = ptm then REPEATC conv tm
-    else failwith "NORMALIZE_ALIGNED_16_CONV";;
-
-let SUB_ALIGNED_16_CONV =
-  let ptm = `aligned 16 :int64->bool` in
-  let rec subconv conv tm =
-    match tm with
-    | Comb(ptm',_) when ptm' = ptm -> RAND_CONV conv tm
-    | Comb(l,r) -> COMB_CONV (subconv conv) tm
-    | Abs(x,bod) -> ABS_CONV (subconv conv) tm
-    | _ -> REFL tm in
-  subconv;;
-
-let (ALIGNED_16_TAC:tactic) =
-  let basetac =
-    CONV_TAC
-     (SUB_ALIGNED_16_CONV(TOP_DEPTH_CONV COMPONENT_READ_OVER_WRITE_CONV)) THEN
-    ASM (GEN_REWRITE_TAC
-      (LAND_CONV o SUB_ALIGNED_16_CONV o TOP_DEPTH_CONV)) [] THEN
-    CONV_TAC(ONCE_DEPTH_CONV NORMALIZE_ALIGNED_16_CONV) THEN
-    ASSUM_LIST(fun thl ->
-      REWRITE_TAC(mapfilter (CONV_RULE NORMALIZE_ALIGNED_16_CONV) thl))
-  and trigger = vfree_in `aligned:num->int64->bool` in
-  fun (asl,w) -> if trigger w then basetac (asl,w) else ALL_TAC (asl,w);;
-
-let ALIGNED_16_CONV ths =
-  let baseconv =
-    SUB_ALIGNED_16_CONV(TOP_DEPTH_CONV COMPONENT_READ_OVER_WRITE_CONV) THENC
-    GEN_REWRITE_CONV (SUB_ALIGNED_16_CONV o TOP_DEPTH_CONV) ths THENC
-    ONCE_DEPTH_CONV NORMALIZE_ALIGNED_16_CONV THENC
-    REWRITE_CONV(mapfilter (CONV_RULE NORMALIZE_ALIGNED_16_CONV) ths)
-  and trigger = vfree_in `aligned:num->int64->bool` in
-  fun tm -> if trigger tm then baseconv tm else REFL tm;;
 
 (* ------------------------------------------------------------------------- *)
 (* Support for the "forward symbolic execution" proof style.                 *)
@@ -423,14 +382,43 @@ let is_read_events t =
  ***)
 
 let ARM_CONV (decode_ths:thm option array) (ths:thm list) tm =
-  let pc_th = find
+  (* Find `read PC .. = ..` from ths (assumptions). *)
+  let pc_th = try find
     (fun th -> (* do not use term_match because it is slow. *)
       let c = concl th in
       is_eq c && is_read_pc (fst (dest_eq c)))
-    ths in
+    ths with _ -> failwith "ARM_CONV: can't find `read PC .. = ..` from ths" in
+
+  (* Find `aligned_bytes_loaded ..`. *)
+  let aligned_bytes_loaded_mc_ths:thm list =
+    (* Pick the _mc const from decode_ths, if decode_ths[0] != None, which is
+       likely to be true. *)
+    let the_mc:term option = Option.bind decode_ths.(0)
+      (fun th ->
+        (* th is `forall .., bytes_loaded ... _mc ==> arm_decode ..`. *)
+        let t = concl th in
+        let bytes_loaded_term = fst (dest_imp (snd (strip_forall t))) in
+        let the_mc = last (snd (strip_comb bytes_loaded_term)) in
+        (* if _mc contains relocations, the_mc is `.._mc args`. In this
+           case, return None. *)
+        if is_const the_mc then Some the_mc else None) in
+    let aligned_bytes_loaded_tm = `aligned_bytes_loaded` in
+    let res = filter (fun th ->
+        let cc = concl th in is_comb cc && (
+        let c,args = strip_comb (concl th) in
+        c = aligned_bytes_loaded_tm &&
+          (the_mc = None || last args = Option.get the_mc)))
+      ths in
+    if res = [] then failwith
+        ("ARM_CONV: can't find `aligned_bytes_loaded .. .. " ^
+          (if the_mc <> None then string_of_term (Option.get the_mc) else "..")
+          ^ "` from ths")
+    else res in
+
   let eth = try
     tryfind (fun loaded_mc_th ->
-      GEN_REWRITE_CONV I [ARM_THM decode_ths loaded_mc_th pc_th] tm) ths
+      GEN_REWRITE_CONV I [ARM_THM decode_ths loaded_mc_th pc_th] tm)
+      aligned_bytes_loaded_mc_ths
     with Failure s ->
       let pcstr = string_of_term (concl pc_th) in
       failwith ("ARM_CONV: can't find aligned_bytes_loaded (pc: `" ^
@@ -718,7 +706,18 @@ let ARM_SUBROUTINE_SIM_TAC (machinecode,execth,offset,submachinecode,subth) =
     let svar = mk_var(sname,`:armstate`)
     and svar0 = mk_var("s",`:armstate`) in
     let ilist = map (vsubst[svar,svar0]) ilist0 in
-    MP_TAC(TWEAK_PC_OFFSET(SPECL ilist subth)) THEN
+    let subth_specl =
+      try SPECL ilist subth with _ -> begin
+        (if (!arm_print_log) then
+          (Printf.printf "ilist and subth's forall vars do not match\n";
+           Printf.printf "ilist: [%s]\n" (end_itlist
+            (fun s s2 -> s ^ "; " ^ s2) (map string_of_term ilist));
+           Printf.printf "subth's forall vars: [%s]\n"
+              (end_itlist (fun s s2 -> s ^ "; " ^ s2)
+                (map string_of_term (fst (strip_forall (concl subth)))))));
+        failwith "ARM_SUBROUTINE_SIM_TAC: subth vars don't not match ilist0"
+      end in
+    MP_TAC(TWEAK_PC_OFFSET subth_specl) THEN
     ASM_REWRITE_TAC[C_ARGUMENTS; C_RETURN; SOME_FLAGS;
                     MAYCHANGE_REGS_AND_FLAGS_PERMITTED_BY_ABI;
                     MODIFIABLE_SIMD_REGS; MODIFIABLE_GPRS;
@@ -735,7 +734,10 @@ let ARM_SUBROUTINE_SIM_TAC (machinecode,execth,offset,submachinecode,subth) =
     CONV_TAC(LAND_CONV(ONCE_DEPTH_CONV NORMALIZE_RELATIVE_ADDRESS_CONV)) THEN
     ASM_REWRITE_TAC[] THEN
     ARM_BIGSTEP_TAC execth sname' THENL
-     [MATCH_MP_TAC subimpth THEN FIRST_X_ASSUM ACCEPT_TAC;
+     [(* Precondition of subth *)
+      (MATCH_MP_TAC subimpth THEN FIRST_X_ASSUM ACCEPT_TAC) ORELSE
+       (PRINT_GOAL_TAC THEN
+        FAIL_TAC "Could not discharge precond (subgoal after ARM_BIGSTEP_TAC)");
       ALL_TAC] THEN
     RULE_ASSUM_TAC(CONV_RULE(TRY_CONV
      (GEN_REWRITE_CONV I [MESON[ADD_ASSOC]
@@ -1159,3 +1161,45 @@ let BL_TARGET_CONV =
 let BL_TARGET_TAC =
   ASSUM_LIST (CONV_TAC o CHANGED_CONV o ONCE_DEPTH_CONV o BL_TARGET_CONV) THEN
   REWRITE_TAC [];;
+
+(* ------------------------------------------------------------------------- *)
+(* Handling PC-relative offsets (ADRP + ADD, which is ADRL pseudo-instr)     *)
+(* ------------------------------------------------------------------------- *)
+
+let adrp_within_bounds = new_definition (
+  `adrp_within_bounds (x:int64) (pc:int64) =
+    let xhi = word_subword x (12,54):(54)word in
+    let pchi = word_subword pc (12,54):(54)word in
+    // -2^20 <= xhi - pchi < 2^20
+    (word_uge xhi pchi /\ word_ult (word_sub xhi pchi) (word (2 EXP 20))) \/
+    (word_ult xhi pchi /\ word_ule (word_sub pchi xhi) (word (2 EXP 20)))`);;
+
+let ADRP_ADD_FOLD = prove(`forall (pc:int64) (x:int64).
+  adrp_within_bounds x pc
+  ==>
+  word_add
+    (word_add
+        (word_and pc (word 0xFFFFFFFFFFFFF000))
+        (word_sx
+            (word_join
+                (word_join
+                    (word_subword
+                        (word_sub
+                            (word_and x (word 0xFFFFFFFFFFFFF000))
+                            (word_and pc (word 0xFFFFFFFFFFFFF000)):(64)word)
+                        (14,19):(19)word)
+                    (word_subword
+                        (word_sub
+                            (word_and x (word 0xFFFFFFFFFFFFF000))
+                            (word_and pc (word 0xFFFFFFFFFFFFF000)):(64)word)
+                        (12,2):(2)word)
+                    :(21)word)
+                (word 0:(12)word)
+            :(33)word)
+        :(64)word)
+    )
+    (word (val (word_subword x (0,12):(12)word)):(64)word)
+    = x`,
+
+  REWRITE_TAC[adrp_within_bounds] THEN
+  BITBLAST_TAC);;

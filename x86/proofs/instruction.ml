@@ -237,6 +237,11 @@ let instruction_INDUCTION,instruction_RECURSION = define_type
    | ADCX operand operand
    | ADD operand operand
    | ADOX operand operand
+   | AESDEC operand operand
+   | AESDECLAST operand operand
+   | AESENC operand operand
+   | AESENCLAST operand operand
+   | AESKEYGENASSIST operand operand operand
    | AND operand operand
    | BSF operand operand
    | BSR operand operand
@@ -263,14 +268,26 @@ let instruction_INDUCTION,instruction_RECURSION = define_type
    | MOV operand operand
    | MOVSX operand operand
    | MOVZX operand operand
+   | MOVAPS operand operand
+   | MOVDQA operand operand
+   | MOVDQU operand operand
+   | MOVUPS operand operand
    | MUL2 (operand#operand) operand
    | MULX4 (operand#operand) (operand#operand)
    | NEG operand
    | NOP
+   | NOP_N operand
    | NOT operand
    | OR operand operand
+   | PADDD operand operand
+   | PADDQ operand operand
+   | PAND operand operand
+   | PCMPGTD operand operand
    | POP operand
+   | PSHUFD operand operand operand
+   | PSRAD operand operand
    | PUSH operand
+   | PXOR operand operand
    | RCL operand operand
    | RCR operand operand
    | RET
@@ -287,6 +304,10 @@ let instruction_INDUCTION,instruction_RECURSION = define_type
    | SUB operand operand
    | TEST operand operand
    | TZCNT operand operand
+   | VPADDW operand operand operand
+   | VPMULHW operand operand operand
+   | VPMULLW operand operand operand
+   | VPSUBW operand operand operand
    | VPXOR operand operand operand
    | XCHG operand operand
    | XOR operand operand";;

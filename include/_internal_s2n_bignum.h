@@ -1,8 +1,14 @@
 
 #ifdef __APPLE__
 #   define S2N_BN_SYMBOL(NAME) _##NAME
+#   if defined(__AARCH64EL__) || defined(__ARMEL__)
+#     define __LF %%
+#   else
+#     define __LF ;
+#   endif
 #else
 #   define S2N_BN_SYMBOL(name) name
+#   define __LF ;
 #endif
 
 #define S2N_BN_SYM_VISIBILITY_DIRECTIVE(name) .globl S2N_BN_SYMBOL(name)
@@ -27,9 +33,12 @@
 // slowdown from executing one more instruction.
 
 #if NO_IBT
-#define _CET_ENDBR
+#   if defined(_CET_ENDBR)
+#     error "The s2n-bignum build option NO_IBT was configured, but _CET_ENDBR is defined in this compilation unit. That is weird, so failing the build."
+#   endif
+#   define _CET_ENDBR
 #elif defined(__CET__)
-#include <cet.h>
-#else
-#define _CET_ENDBR .byte 0xf3,0x0f,0x1e,0xfa
+#   include <cet.h>
+#elif !defined(_CET_ENDBR)
+#   define _CET_ENDBR .byte 0xf3,0x0f,0x1e,0xfa
 #endif

@@ -7,8 +7,8 @@
 //
 // extern void p256_scalarmul_alt
 //   (uint64_t res[static 8],
-//    uint64_t scalar[static 4],
-//    uint64_t point[static 8]);
+//    const uint64_t scalar[static 4],
+//    const uint64_t point[static 8]);
 //
 // Given scalar = n and point = P, assumed to be on the NIST elliptic
 // curve P-256, returns the point (X,Y) = n * P. The input and output
@@ -55,9 +55,9 @@
 // Loading large constants
 
 #define movbig(nn,n3,n2,n1,n0)                                      \
-        movz    nn, n0;                                             \
-        movk    nn, n1, lsl #16;                                    \
-        movk    nn, n2, lsl #32;                                    \
+        movz    nn, n0 __LF                                            \
+        movk    nn, n1, lsl #16 __LF                                   \
+        movk    nn, n2, lsl #32 __LF                                   \
         movk    nn, n3, lsl #48
 
 S2N_BN_SYMBOL(p256_scalarmul_alt):

@@ -684,8 +684,6 @@ let CONDITION_SEMANTICS_INVERT_CONDITION = prove
 
 (*** We don't support quite all the addressing modes in C1.3.3.
  *** In particular we ignore extended 32-bit registers, which we'll never use
- *** We also ignore the post-indexed register offset, which is only in SIMD
- *** mode.
  ***
  *** We have a numeric parameter in the Shiftreg_Offset but it's only
  *** allowed to be log_2(transfer_size), i.e. usually 3. We also just treat all
@@ -696,6 +694,7 @@ let offset_INDUCT,offset_RECURSION = define_type
  "offset =
     Register_Offset ((armstate,int64)component)      // [base, reg]
   | Shiftreg_Offset ((armstate,int64)component) num  // [base, reg, LSL k]
+  | Postreg_Offset ((armstate, int64)component)      // [base], [reg]
   | Immediate_Offset (64 word)                       // [base, #n] or [base]
   | Preimmediate_Offset (64 word)                    // [base, #n]!
   | Postimmediate_Offset (64 word)                   // [base], #n
@@ -708,6 +707,7 @@ let no_offset = define `No_Offset = Immediate_Offset (word 0)`;;
 let offset_address = define
  `offset_address (Register_Offset r) s = read r s /\
   offset_address (Shiftreg_Offset r k) s = word_shl (read r s) k /\
+  offset_address (Postreg_Offset r) s = word 0 /\
   offset_address (Immediate_Offset w) s = w /\
   offset_address (Preimmediate_Offset w) s = w /\
   offset_address (Postimmediate_Offset w) s = word 0`;;
@@ -715,15 +715,17 @@ let offset_address = define
 (*** This one defines the offset to add to the register ***)
 
 let offset_writeback = define
- `offset_writeback (Register_Offset r) = word 0 /\
-  offset_writeback (Shiftreg_Offset r k) = word 0 /\
-  offset_writeback (Immediate_Offset w) = word 0 /\
-  offset_writeback (Preimmediate_Offset w) = w /\
-  offset_writeback (Postimmediate_Offset w) = w`;;
+ `offset_writeback (Register_Offset r) s = word 0 /\
+  offset_writeback (Shiftreg_Offset r k) s = word 0 /\
+  offset_writeback (Postreg_Offset r) s = read r s /\
+  offset_writeback (Immediate_Offset w) s = word 0 /\
+  offset_writeback (Preimmediate_Offset w) s = w /\
+  offset_writeback (Postimmediate_Offset w) s = w`;;
 
 let offset_writesback = define
  `(offset_writesback (Register_Offset r) <=> F) /\
   (offset_writesback (Shiftreg_Offset r k) <=> F) /\
+  (offset_writesback (Postreg_Offset r) <=> T) /\
   (offset_writesback (Immediate_Offset w) <=> F) /\
   (offset_writesback (Preimmediate_Offset w) <=> T) /\
   (offset_writesback (Postimmediate_Offset w) <=> T)`;;
@@ -815,6 +817,13 @@ let MAYCHANGE_REGS_AND_FLAGS_PERMITTED_BY_ABI = REWRITE_RULE
     MAYCHANGE MODIFIABLE_UPPER_SIMD_REGS ,, MAYCHANGE SOME_FLAGS ,, MAYCHANGE [events]`);;
 
 (* ------------------------------------------------------------------------- *)
+(* Mask-creating version of a comparison-type operation.                     *)
+(* ------------------------------------------------------------------------- *)
+
+let masking = new_definition
+ `(masking p:N word->N word->N word) x y = word_neg(word(bitval(p x y)))`;;
+
+(* ------------------------------------------------------------------------- *)
 (* General register-register instructions.                                   *)
 (* ------------------------------------------------------------------------- *)
 
@@ -879,6 +888,15 @@ let arm_ADDS = define
 let arm_ADR = define
  `arm_ADR Rd (off:21 word) =
     \s. let d = word_add (word_sub (read PC s) (word 4)) (word_sx off) in
+        (Rd := d) s`;;
+
+let arm_ADRP = define
+ `arm_ADRP Rd (off:21 word) =
+    \s. let pc0 = word_sub (read PC s) (word 4) in
+        // get its 4KB(=2^12) page boundary
+        let pc_page = word_and pc0 (word 0xFFFFFFFFFFFFF000) in
+        let off0 = word_sx (word_join off (word 0:(12)word):(33)word) in
+        let d = word_add pc_page off0 in
         (Rd := d) s`;;
 
 let arm_AND = define
@@ -1059,6 +1077,39 @@ let arm_CLZ = define
  `arm_CLZ Rd Rn =
         \s. (Rd := (word(word_clz (read Rn s:N word)):N word)) s`;;
 
+let arm_CMHI_VEC = define
+ `arm_CMHI_VEC Rd Rn Rm esize datasize =
+    \s:armstate.
+        let n = read Rn s in
+        let m = read Rm s in
+        if datasize = 128 then
+          let d:(128)word =
+            if esize = 64 then simd2 (masking word_ugt) n m
+            else if esize = 32 then simd4 (masking word_ugt) n m
+            else if esize = 16 then simd8 (masking word_ugt) n m
+            else simd16 (masking word_ugt) n m in
+          (Rd := d) s
+        else
+          let n:(64)word = word_subword n (0,64) in
+          let m:(64)word = word_subword m (0,64) in
+          let d:(64)word =
+            if esize = 32 then simd2 (masking word_ugt) n m
+            else if esize = 16 then simd4 (masking word_ugt) n m
+            else simd8 (masking word_ugt) n m in
+          (Rd := word_zx d:(128)word) s`;;
+
+let arm_CNT = define
+ `arm_CNT Rd Rn datasize =
+    \s:armstate.
+        let n = read Rn s in
+        if datasize = 128 then
+          let d:(128)word = usimd16 (word o word_popcount) n in
+          (Rd := d) s
+        else
+          let n':int64 = word_subword n (0,64) in
+          let d:int64 = usimd8 (word o word_popcount) n' in
+          (Rd := word_zx d) s`;;
+
 let arm_CSEL = define
  `arm_CSEL Rd Rn Rm cc =
         \s. (Rd := if condition_semantics cc s
@@ -1235,18 +1286,13 @@ let arm_MOVZ = define
  `arm_MOVZ (Rd:(armstate,N word)component) (imm:int16) pos =
     Rd := word (val imm * 2 EXP pos)`;;
 
-(* Only double precision is implemented *)
-(* arm_FMOV_FtoI and arm_FMOV_ItoF could not be merged
-  due to type resolution failure *)
 let arm_FMOV_FtoI = define
- `arm_FMOV_FtoI Rd Rn (part:num) =
+ `arm_FMOV_FtoI Rd Rn (part:num) esize  =
     \s. let n:(128)word = read Rn s in
-        let intval:(64)word =
-          if part = 0
-          then word_subword n (0, 64)
-          else word_subword n (64, 64) in
+        let intval = word_subword n (part*esize,esize) in
         (Rd := intval) s
     `;;
+
 let arm_FMOV_ItoF = define
  `arm_FMOV_ItoF Rd Rn (part:num) =
     \s. let fltval:(64)word = read Rn s in
@@ -1282,6 +1328,9 @@ let arm_MUL_VEC = define
             else if esize = 16 then simd4 word_mul n m
             else simd8 word_mul n m in
           (Rd := word_zx d:(128)word) s`;;
+
+let arm_NOP = new_definition
+  `arm_NOP = \s s':armstate. s = s'`;;
 
 let arm_ORN = define
  `arm_ORN Rd Rm Rn =
@@ -1433,24 +1482,31 @@ let arm_SSHR_VEC = define
             else usimd8 (\x. word_ishr x amt) n in
           (Rd := word_zx d:(128)word) s`;;
 
-(* SLI (vector), Q = 1 case only (datasize = 128) *)
+(* SLI (vector) *)
 let arm_SLI_VEC = define
- `arm_SLI_VEC Rd Rn shiftamnt esize =
+ `arm_SLI_VEC Rd Rn shiftamnt datasize esize =
     \s. let n:(128)word = read Rn s
         and d:(128)word = read Rd s in
         let mask = (2 EXP shiftamnt) - 1 in
-        let d:(128)word = if esize = 64 then
-            simd2 (\ni di. word_or
-              (word_shl ni shiftamnt) (word_and di (word mask))) n d
-          else if esize = 32 then
-            simd4 (\ni di. word_or
-              (word_shl ni shiftamnt) (word_and di (word mask))) n d
-          else if esize = 16 then
-            simd8 (\ni di. word_or
-              (word_shl ni shiftamnt) (word_and di (word mask))) n d
-          else simd16 (\ni di. word_or
-              (word_shl ni shiftamnt) (word_and di (word mask))) n d in
-        (Rd := d) s`;;
+        let op8  = (\ni (di:  8 word). word_or (word_shl ni shiftamnt) (word_and di (word mask))) in
+        let op16 = (\ni (di: 16 word). word_or (word_shl ni shiftamnt) (word_and di (word mask))) in
+        let op32 = (\ni (di: 32 word). word_or (word_shl ni shiftamnt) (word_and di (word mask))) in
+        let op64 = (\ni (di: 64 word). word_or (word_shl ni shiftamnt) (word_and di (word mask))) in
+        if datasize = 128 then
+          let d:(128)word =
+            if esize = 64 then simd2 op64 n d
+            else if esize = 32 then simd4 op32 n d
+            else if esize = 16 then simd8 op16 n d
+            else simd16 op8 n d in
+          (Rd := d) s
+        else
+        let n:(64)word = word_subword n (0, 64) in
+        let d:(64)word = word_subword d (0, 64) in
+          let d:(64)word =
+            if esize = 32 then simd2 op32 n d
+            else if esize = 16 then simd4 op16 n d
+            else simd8 op8 n d in
+          (Rd := word_zx d:(128)word) s`;;
 
 (* SRI (vector) *)
 let arm_SRI_VEC = define
@@ -1612,6 +1668,14 @@ let arm_UADDLP = define
             (\x. word_add (word_zx (word_subword x (0,8):(32)word):(16)word)
                           (word_zx (word_subword x (8,8):(32)word):(16)word)) n in
           (Rd := res) s`;;
+
+let arm_UADDLV = define
+ `arm_UADDLV Rd Rn elements esize =
+    \s:armstate.
+        let n:128 word = read Rn s in
+        let d = nsum (0..elements-1)
+                    (\i. val(word_subword n (esize*i,esize):int128)) in
+         (Rd := (word d:128 word)) s`;;
 
 let arm_UBFM = define
  `arm_UBFM Rd Rn immr imms =
@@ -2130,6 +2194,19 @@ let arm_TRN2 = define
             else simd4 word_interleave_hi n m in
           (Rd := word_zx d:(128)word) s`;;
 
+let arm_TBL = define
+ `arm_TBL Rd [Rn] Rm datasize =
+    \s:armstate.
+        let n:int128 = read Rn s in
+        let m = read Rm s in
+        if datasize = 128 then
+          let d = usimd16 (\x. word_subword n (8 * val x,8):byte) m in
+          (Rd := d) s
+        else
+          let d =
+             usimd8 (\x. word_subword n (8 * val x,8):byte) (word_zx m:int64) in
+          (Rd := word_zx d:(128)word) s`;;
+
 (* ------------------------------------------------------------------------- *)
 (* Load and store instructions.                                              *)
 (* ------------------------------------------------------------------------- *)
@@ -2161,7 +2238,7 @@ let arm_LDR = define
            events := CONS (EventLoad (addr,dimindex (:N) DIV 8))
                           (read events s) ,,
            (if offset_writesback off
-            then Rn := word_add base (offset_writeback off)
+            then Rn := word_add base (offset_writeback off s)
             else (=))
          else ASSIGNS entirety) s`;;
 
@@ -2176,7 +2253,7 @@ let arm_STR = define
            events := CONS (EventStore (addr,dimindex (:N) DIV 8))
                           (read events s) ,,
            (if offset_writesback off
-            then Rn := word_add base (offset_writeback off)
+            then Rn := word_add base (offset_writeback off s)
             else (=))
          else ASSIGNS entirety) s`;;
 
@@ -2190,7 +2267,7 @@ let arm_LDRB = define
            Rt := word_zx (read (memory :> bytes8 addr) s) ,,
            events := CONS (EventLoad (addr,1)) (read events s) ,,
            (if offset_writesback off
-            then Rn := word_add base (offset_writeback off)
+            then Rn := word_add base (offset_writeback off s)
             else (=))
          else ASSIGNS entirety) s`;;
 
@@ -2204,7 +2281,7 @@ let arm_STRB = define
            memory :> bytes8 addr := word_zx (read Rt s) ,,
            events := CONS (EventStore (addr,1)) (read events s) ,,
            (if offset_writesback off
-            then Rn := word_add base (offset_writeback off)
+            then Rn := word_add base (offset_writeback off s)
             else (=))
          else ASSIGNS entirety) s`;;
 
@@ -2226,7 +2303,7 @@ let arm_LDP = define
            Rt2 := read (memory :> wbytes(word_add addr (word w))) s ,,
            events := CONS (EventLoad (addr,2 * w)) (read events s) ,,
            (if offset_writesback off
-            then Rn := word_add base (offset_writeback off)
+            then Rn := word_add base (offset_writeback off s)
             else (=))
          else ASSIGNS entirety) s`;;
 
@@ -2244,7 +2321,7 @@ let arm_STP = define
            memory :> wbytes(word_add addr (word w)) := read Rt2 s ,,
            events := CONS (EventStore (addr,2 * w)) (read events s) ,,
            (if offset_writesback off
-            then Rn := word_add base (offset_writeback off)
+            then Rn := word_add base (offset_writeback off s)
             else (=))
          else ASSIGNS entirety) s`;;
 
@@ -2362,7 +2439,7 @@ let arm_LD2 = define
               (Rt := x),, (Rtt := y) ,,
               events := CONS (EventLoad (eaddr,32)) (read events s) ,,
               (if offset_writesback off
-               then Rn := word_add address (offset_writeback off)
+               then Rn := word_add address (offset_writeback off s)
                else (=))
             else
               let tmp:(128 word) = read (memory :> wbytes eaddr) s in
@@ -2377,7 +2454,7 @@ let arm_LD2 = define
               (Rt := word_zx x:(128)word),, (Rtt := word_zx y:(128)word) ,,
               events := CONS (EventLoad (eaddr,16)) (read events s) ,,
               (if offset_writesback off
-               then Rn := word_add address (offset_writeback off)
+               then Rn := word_add address (offset_writeback off s)
                else (=)))
          else ASSIGNS entirety) s`;;
 
@@ -2407,7 +2484,7 @@ let arm_ST2 = define
               memory :> wbytes eaddr := tmp) ,,
             events := CONS (EventStore (eaddr,datasize DIV 4)) (read events s) ,,
            (if offset_writesback off
-            then Rn := word_add address (offset_writeback off)
+            then Rn := word_add address (offset_writeback off s)
             else (=))
          else ASSIGNS entirety) s`;;
 
@@ -2441,7 +2518,7 @@ let arm_LD1R = define
               (Rt := (word_zx replicated):(128)word)) ,,
             events := CONS (EventLoad (addr,esize DIV 8)) (read events s) ,,
             (if offset_writesback off
-             then Rn := word_add base (offset_writeback off)
+             then Rn := word_add base (offset_writeback off s)
              else (=))
          else ASSIGNS entirety) s`;;
 
@@ -2973,7 +3050,6 @@ let arm_MOVK_ALT =
   REWRITE_RULE[assign; WRITE_COMPONENT_COMPOSE; read; write; subword]
     arm_MOVK;;
 
-
 (* ------------------------------------------------------------------------- *)
 (* Alternative definitions of NEON instructions that unfold simdN/usimdN.    *)
 (* ------------------------------------------------------------------------- *)
@@ -2985,7 +3061,9 @@ let WORD_DUPLICATE_64_128 = prove
   ONCE_REWRITE_TAC[GSYM WORD_DUPLICATE_DOUBLE] THEN
   REWRITE_TAC[WORD_DUPLICATE_REFL]);;
 
-let all_simd_rules = [usimd16;usimd8;usimd4;usimd2;simd16;simd8;simd4;simd2;
+let all_simd_rules =
+   [usimd16;usimd8;usimd4;usimd2;simd16;simd8;simd4;simd2;
+    o_THM; masking;
     WORD_DUPLICATE_64_128;
     word_interleave16;
     word_interleave8;word_interleave4;word_interleave2;word_split_lohi;
@@ -2997,9 +3075,12 @@ let all_simd_rules = [usimd16;usimd8;usimd4;usimd2;simd16;simd8;simd4;simd2;
     word_deinterleave16_x; word_deinterleave16_y];;
 
 let EXPAND_SIMD_RULE =
+  CONV_RULE (TOP_DEPTH_CONV WORD_SIMPLE_SUBWORD_CONV) o
   CONV_RULE (DEPTH_CONV DIMINDEX_CONV) o REWRITE_RULE all_simd_rules;;
 
 let arm_ADD_VEC_ALT =    EXPAND_SIMD_RULE arm_ADD_VEC;;
+let arm_CMHI_VEC_ALT =   EXPAND_SIMD_RULE arm_CMHI_VEC;;
+let arm_CNT_ALT =        EXPAND_SIMD_RULE arm_CNT;;
 let arm_DUP_GEN_ALT =    EXPAND_SIMD_RULE arm_DUP_GEN;;
 let arm_MLS_VEC_ALT =    EXPAND_SIMD_RULE arm_MLS_VEC;;
 let arm_MUL_VEC_ALT =    EXPAND_SIMD_RULE arm_MUL_VEC;;
@@ -3016,6 +3097,7 @@ let arm_SMULL_VEC_ALT =  EXPAND_SIMD_RULE arm_SMULL_VEC;;
 let arm_SMULL2_VEC_ALT = EXPAND_SIMD_RULE arm_SMULL2_VEC;;
 let arm_SRI_VEC_ALT =    EXPAND_SIMD_RULE arm_SRI_VEC;;
 let arm_SUB_VEC_ALT =    EXPAND_SIMD_RULE arm_SUB_VEC;;
+let arm_TBL_ALT =        EXPAND_SIMD_RULE arm_TBL;;
 let arm_TRN1_ALT =       EXPAND_SIMD_RULE arm_TRN1;;
 let arm_TRN2_ALT =       EXPAND_SIMD_RULE arm_TRN2;;
 let arm_UADDLP_ALT =     EXPAND_SIMD_RULE arm_UADDLP;;
@@ -3035,7 +3117,6 @@ let arm_ZIP2_ALT =       EXPAND_SIMD_RULE arm_ZIP2;;
 let arm_LD2_ALT =        EXPAND_SIMD_RULE arm_LD2;;
 let arm_ST2_ALT =        EXPAND_SIMD_RULE arm_ST2;;
 
-
 let arm_SQDMULH_VEC_ALT =
   REWRITE_RULE[word_2smulh] (EXPAND_SIMD_RULE arm_SQDMULH_VEC);;
 
@@ -3044,6 +3125,21 @@ let arm_SQRDMULH_VEC_ALT =
 
 let arm_SRSHR_VEC_ALT =
   REWRITE_RULE[word_ishr_round] (EXPAND_SIMD_RULE arm_SRSHR_VEC);;
+
+let arm_UADDLV_ALT =
+  (end_itlist CONJ o
+   map (REWRITE_RULE[WORD_ADD; WORD_VAL] o
+        CONV_RULE(TOP_DEPTH_CONV let_CONV) o
+        CONV_RULE
+         (NUM_REDUCE_CONV THENC
+          ONCE_DEPTH_CONV EXPAND_NSUM_CONV THENC
+          NUM_REDUCE_CONV) o
+        GEN_REWRITE_CONV I [arm_UADDLV]))
+  [`arm_UADDLV Rd Rn 8 8`;
+   `arm_UADDLV Rd Rn 16 8`;
+   `arm_UADDLV Rd Rn 4 16`;
+   `arm_UADDLV Rd Rn 8 16`;
+   `arm_UADDLV Rd Rn 4 32`];;
 
 (* ------------------------------------------------------------------------- *)
 (* Collection of standard forms of non-aliased instructions                  *)
@@ -3054,11 +3150,12 @@ let ARM_OPERATION_CLAUSES =
   map (CONV_RULE(TOP_DEPTH_CONV let_CONV) o SPEC_ALL)
     (*** Alphabetically sorted, new alphabet appears in the next line ***)
       [arm_ADC; arm_ADCS_ALT; arm_ADD; arm_ADD_VEC_ALT; arm_ADDS_ALT; arm_ADR;
-       arm_AND; arm_AND_VEC; arm_ANDS; arm_ASR; arm_ASRV;
+       arm_ADRP; arm_AND; arm_AND_VEC; arm_ANDS; arm_ASR; arm_ASRV;
        arm_B; arm_BCAX; arm_BFM; arm_BIC; arm_BIC_VEC; arm_BICS; arm_BIT;
        arm_BL; arm_BL_ABSOLUTE; arm_Bcond;
-       arm_CBNZ_ALT; arm_CBZ_ALT; arm_CCMN; arm_CCMP; arm_CLZ; arm_CSEL;
-       arm_CSINC; arm_CSINV; arm_CSNEG;
+       arm_CBNZ_ALT; arm_CBZ_ALT; arm_CCMN; arm_CCMP; arm_CLZ;
+       arm_CMHI_VEC_ALT; arm_CNT_ALT;
+       arm_CSEL; arm_CSINC; arm_CSINV; arm_CSNEG;
        arm_DUP_GEN_ALT;
        arm_EON; arm_EOR; arm_EOR_VEC; arm_EOR3; arm_EXT; arm_EXTR;
        arm_FCSEL; arm_FMOV_FtoI; arm_FMOV_ItoF; arm_INS; arm_INS_GEN;
@@ -3067,6 +3164,7 @@ let ARM_OPERATION_CLAUSES =
        arm_MLS_VEC_ALT;
        arm_MOVI; arm_MOVK_ALT; arm_MOVN; arm_MOVZ; arm_MSUB;
        arm_MUL_VEC_ALT;
+       arm_NOP;
        arm_ORN; arm_ORR; arm_ORR_VEC;
        arm_RET; arm_REV64_VEC_ALT; arm_RORV;
        arm_SBC; arm_SBCS_ALT; arm_SBFM; arm_SHL_VEC_ALT; arm_SHRN_ALT;
@@ -3080,8 +3178,9 @@ let ARM_OPERATION_CLAUSES =
        arm_SQDMULH_VEC_ALT;
        arm_SQRDMULH_VEC_ALT;
        arm_SUB; arm_SUB_VEC_ALT; arm_SUBS_ALT;
+       arm_TBL_ALT;
        arm_TRN1_ALT; arm_TRN2_ALT;
-       arm_UADDLP_ALT; arm_UBFM; arm_UMOV; arm_UMADDL;
+       arm_UADDLP_ALT; arm_UADDLV_ALT; arm_UBFM; arm_UMOV; arm_UMADDL;
        arm_UMLAL_VEC_ALT; arm_UMLAL2_VEC_ALT;
        arm_UMLSL_VEC_ALT; arm_UMLSL2_VEC_ALT;
        arm_UMSUBL;

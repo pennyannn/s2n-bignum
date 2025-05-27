@@ -5,8 +5,8 @@
 // Reduce modulo group order, z := x mod m_25519
 // Input x[4]; output z[4]
 //
-//    extern void bignum_mod_m25519_4
-//     (uint64_t z[static 4], uint64_t x[static 4]);
+//    extern void bignum_mod_m25519_4(uint64_t z[static 4],
+//                                    const uint64_t x[static 4]);
 //
 // Reduction is modulo the group order of curve25519/edwards25519.
 // This is the full group order, 8 * the standard basepoint order.
@@ -36,9 +36,9 @@
 // Loading large constants
 
 #define movbig(nn,n3,n2,n1,n0)                                      \
-        movz    nn, n0;                                             \
-        movk    nn, n1, lsl #16;                                    \
-        movk    nn, n2, lsl #32;                                    \
+        movz    nn, n0 __LF                                            \
+        movk    nn, n1, lsl #16 __LF                                   \
+        movk    nn, n2, lsl #32 __LF                                   \
         movk    nn, n3, lsl #48
 
 S2N_BN_SYMBOL(bignum_mod_m25519_4):

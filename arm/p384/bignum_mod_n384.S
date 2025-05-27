@@ -5,8 +5,8 @@
 // Reduce modulo group order, z := x mod n_384
 // Input x[k]; output z[6]
 //
-//    extern void bignum_mod_n384
-//     (uint64_t z[static 6], uint64_t k, uint64_t *x);
+//    extern void bignum_mod_n384(uint64_t z[static 6], uint64_t k,
+//                                const uint64_t *x);
 //
 // Reduction is modulo the group order of the NIST curve P-384.
 //
@@ -59,9 +59,9 @@
 // Loading large constants
 
 #define movbig(nn,n3,n2,n1,n0)                                              \
-        movz    nn, n0;                                             \
-        movk    nn, n1, lsl #16;                                    \
-        movk    nn, n2, lsl #32;                                    \
+        movz    nn, n0 __LF                                            \
+        movk    nn, n1, lsl #16 __LF                                   \
+        movk    nn, n2, lsl #32 __LF                                   \
         movk    nn, n3, lsl #48
 
 S2N_BN_SYMBOL(bignum_mod_n384):

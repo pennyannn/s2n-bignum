@@ -5,8 +5,9 @@
 // Montgomery multiply, z := (x * y / 2^256) mod p_sm2
 // Inputs x[4], y[4]; output z[4]
 //
-//    extern void bignum_montmul_sm2_alt
-//     (uint64_t z[static 4], uint64_t x[static 4], uint64_t y[static 4]);
+//    extern void bignum_montmul_sm2_alt(uint64_t z[static 4],
+//                                       const uint64_t x[static 4],
+//                                       const uint64_t y[static 4]);
 //
 // Does z := (2^{-256} * x * y) mod p_sm2, assuming that the inputs x and y
 // satisfy x * y <= 2^256 * p_sm2 (in particular this is true if we are in
@@ -31,14 +32,14 @@
 
 #define montreds(d4,d3,d2,d1,d0, t3,t2,t1,t0)                               \
 /* First let [t3;t2] = 2^32 * d0 and [t1;t0] = (2^32-1) * d0             */ \
-        lsl     t2, d0, #32;                                                \
-        lsr     t3, d0, #32;                                                \
-        subs    t0, t2, d0;                                                 \
-        sbc     t1, t3, xzr;                                                \
+        lsl     t2, d0, #32 __LF                                               \
+        lsr     t3, d0, #32 __LF                                               \
+        subs    t0, t2, d0 __LF                                                \
+        sbc     t1, t3, xzr __LF                                               \
 /* Now [d4;d3;d2;d1] := [d0;d3;d2;d1] - [t3;t2;t1;t0]                    */ \
-        subs    d1, d1, t0;                                                 \
-        sbcs    d2, d2, t1;                                                 \
-        sbcs    d3, d3, t2;                                                 \
+        subs    d1, d1, t0 __LF                                                \
+        sbcs    d2, d2, t1 __LF                                                \
+        sbcs    d3, d3, t2 __LF                                                \
         sbc     d4, d0, t3
 
 #define z x0
