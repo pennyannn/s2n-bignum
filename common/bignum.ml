@@ -384,6 +384,15 @@ let BIGDIGIT_BIGNUM_OF_WORDLIST = prove(`forall l i.
   ]);;
 
 (* ------------------------------------------------------------------------- *)
+(* Read bytes from memory, trivial                                           *)
+(* ------------------------------------------------------------------------- *)
+
+let READ_MEMORY_BYTES_TRIVIAL = prove(
+  `forall addr s. read (memory :> bytes(addr,0)) s = 0`,
+  REPEAT STRIP_TAC THEN
+  REWRITE_TAC[READ_COMPONENT_COMPOSE; READ_BYTES_TRIVIAL]);;
+
+(* ------------------------------------------------------------------------- *)
 (* Extracting a bignum from memory.                                          *)
 (* ------------------------------------------------------------------------- *)
 

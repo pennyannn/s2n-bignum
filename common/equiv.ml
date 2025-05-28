@@ -683,6 +683,9 @@ let ABBREV_READS_TAC (readth,readth2:thm*thm) (forget_expr:bool):tactic =
                registers. *)
           (try
             let wj1,whi1::wlo1::[] = strip_ncomb 2 rhs in
+            let _ = print_term wj1 in
+            let _ = print_term whi1 in
+            let _ = print_term wlo1 in
             let wj2,whi2::wlo2::[] = strip_ncomb 2 rhs2 in
             if wj1 <> wj2 then failwith "" else
             if wlo1 = wlo2 then readth2,wlo1 else

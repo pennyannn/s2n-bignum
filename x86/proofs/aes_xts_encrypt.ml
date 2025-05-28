@@ -2410,7 +2410,7 @@ let ghost_ymms = new_definition
   )`;;
 
 (* TODO: read more about define and well-foundedness *)
-let data_block_equiv = define
+(* let data_block_equiv = define
   `(data_block_equiv:(x86state#x86state)->int64->num->bool)
       (s1,s1') in_ptr len <=>
       if len < 16 then
@@ -2421,7 +2421,13 @@ let data_block_equiv = define
         (exists n.
           read (memory :> bytes128 in_ptr) s1 = n /\
           read (memory :> bytes128 in_ptr) s1' = n) /\
-        (data_block_equiv (s1,s1') (word_add in_ptr (word 16)) (len - 16))`;;
+        (data_block_equiv (s1,s1') (word_add in_ptr (word 16)) (len - 16))`;; *)
+let data_block_equiv = define
+  `(data_block_equiv:(x86state#x86state)->int64->num->bool)
+      (s1,s1') in_ptr len <=>
+      (exists n.
+        read (memory :> bytes (in_ptr,len)) s1 = n /\
+        read (memory :> bytes (in_ptr,len)) s1' = n)`;;
 
 let aes_xts_eqin = new_definition
   `forall s1 s1' in_ptr out_ptr key1_ptr key2_ptr iv_ptr r1 len stack_pointer.
@@ -2626,6 +2632,16 @@ let alignment_lemma2 = prove
     aligned 16 ((word (val ((word (pc2 + 112)):int64)+2400)):int64)`,
     REWRITE_TAC[load_xts_magic_clean_pc2_equiv]);;
 
+let sp_alignment_lemma1 = prove
+  (`aligned 16 (word_add (read RSP s23) (word 0))`,
+   CHEAT_TAC
+    );;
+let sp_alignment_lemma2 = prove
+  (`aligned 16 (word_add (read RSP s15) (word 96))`,
+   CHEAT_TAC
+    );;
+
+
 let LENGTH_xts_magic_lemma = prove
   (`LENGTH xts_magic=16`,
     REWRITE_TAC [(REWRITE_CONV [xts_magic] THENC LENGTH_CONV) `LENGTH xts_magic`]);;
@@ -2737,6 +2753,110 @@ DONE:
 
 *)
 
+let inv_unchanged_ymms = new_definition
+  `(inv_unchanged_ymms:x86state->bool) s <=>
+   (exists y2 y3 y4 y5 y6 y7 y8.
+          read YMM2 s = y2 /\
+          read YMM3 s = y3 /\
+          read YMM4 s = y4 /\
+          read YMM5 s = y5 /\
+          read YMM6 s = y6 /\
+          read YMM7 s = y7 /\
+          read YMM8 s = y8) `;;
+
+let inv_changed_ymms = new_definition
+  `inv_changed_ymms ((s,s'):x86state#x86state)<=> 
+   (exists
+      y0 y1 y9 y10 y11 y12 y13 y14 y15 y0' y1' y9' y10' y11' y12' y13' y14' y15'
+      (t0:int128) (t1:int128) (t9:int128) (t10:int128) (t11:int128)
+      (t12:int128) (t13:int128) (t14:int128) (t15:int128).
+    read YMM0 s = word_join ((word_subword:int256->num#num->int128) y0 (128,128)) t0 /\
+    read YMM0 s' = word_join ((word_subword:int256->num#num->int128) y0' (128,128)) t0 /\
+    read YMM1 s = word_join ((word_subword:int256->num#num->int128) y1 (128,128)) t1 /\
+    read YMM1 s' = word_join ((word_subword:int256->num#num->int128) y1' (128,128)) t1 /\
+    read YMM9 s = word_join ((word_subword:int256->num#num->int128) y9 (128,128)) t9 /\
+    read YMM9 s' = word_join ((word_subword:int256->num#num->int128) y9' (128,128)) t9 /\
+    read YMM10 s = word_join ((word_subword:int256->num#num->int128) y10 (128,128)) t10 /\
+    read YMM10 s' = word_join ((word_subword:int256->num#num->int128) y10' (128,128)) t10 /\
+    read YMM11 s = word_join ((word_subword:int256->num#num->int128) y11 (128,128)) t11 /\
+    read YMM11 s' = word_join ((word_subword:int256->num#num->int128) y11' (128,128)) t11 /\
+    read YMM12 s = word_join ((word_subword:int256->num#num->int128) y12 (128,128)) t12 /\
+    read YMM12 s' = word_join ((word_subword:int256->num#num->int128) y12' (128,128)) t12 /\
+    read YMM13 s = word_join ((word_subword:int256->num#num->int128) y13 (128,128)) t13 /\
+    read YMM13 s' = word_join ((word_subword:int256->num#num->int128) y13' (128,128)) t13 /\
+    read YMM14 s = word_join ((word_subword:int256->num#num->int128) y14 (128,128)) t14 /\
+    read YMM14 s' = word_join ((word_subword:int256->num#num->int128) y14' (128,128)) t14 /\
+    read YMM15 s = word_join ((word_subword:int256->num#num->int128) y15 (128,128)) t15 /\
+    read YMM15 s' = word_join ((word_subword:int256->num#num->int128) y15' (128,128)) t15)`;;
+
+let inv_sp96 = new_definition
+  `inv_sp96 ((s,s'):x86state#x86state) (stack_pointer:int64) <=>
+    (exists rsp96.
+      read (memory :> bytes128 (word_add stack_pointer (word 96))) s = rsp96 /\
+      read (memory :> bytes128 (word_add stack_pointer (word 96))) s' = rsp96)`;;
+
+(ONCE_DEPTH_CONV OPERAND_SIZE_CONV THENC
+   PRINT_TERM_CONV THENC
+   REWRITE_CONV[condition_semantics; aligned_OPERAND128] THENC
+   PRINT_TERM_CONV THENC
+   REWRITE_CONV[OPERAND_SIZE_CASES] THENC
+   PRINT_TERM_CONV THENC
+   REWRITE_CONV[OPERAND_CLAUSES] THENC
+   PRINT_TERM_CONV THENC
+   ONCE_DEPTH_CONV BSID_SEMANTICS_CONV THENC
+   PRINT_TERM_CONV THENC
+   REWRITE_CONV X86_OPERATION_CLAUSES THENC
+   PRINT_TERM_CONV THENC
+   REWRITE_CONV[READ_RVALUE;
+                ASSIGN_ZEROTOP_32; READ_ZEROTOP_32; WRITE_ZEROTOP_32;
+                ASSIGN_ZEROTOP_128; READ_ZEROTOP_128; WRITE_ZEROTOP_128;
+                READ_BOTTOM_128] THENC
+   PRINT_TERM_CONV THENC
+   DEPTH_CONV WORD_NUM_RED_CONV THENC
+   PRINT_TERM_CONV THENC
+   REWRITE_CONV[SEQ; condition_semantics] THENC
+   PRINT_TERM_CONV THENC
+   GEN_REWRITE_CONV TOP_DEPTH_CONV
+    [UNDEFINED_VALUE; UNDEFINED_VALUES; SEQ_ID] THENC
+   PRINT_TERM_CONV THENC
+   GEN_REWRITE_CONV TOP_DEPTH_CONV
+    [ASSIGNS_PULL_ZEROTOP_THM; ASSIGNS_PULL_THM] THENC
+   PRINT_TERM_CONV THENC
+   REWRITE_CONV[ASSIGNS_THM] THENC
+   PRINT_TERM_CONV THENC
+   GEN_REWRITE_CONV TOP_DEPTH_CONV [SEQ_PULL_THM; BETA_THM] THENC
+   PRINT_TERM_CONV THENC
+   GEN_REWRITE_CONV TOP_DEPTH_CONV[assign; seq; UNWIND_THM1; BETA_THM] THENC
+   PRINT_TERM_CONV THENC
+   TRY_CONV(REWRITE_CONV[WRITE_BOTTOM_128]) THENC
+   PRINT_TERM_CONV THENC
+   TRY_CONV(REWRITE_CONV READ_YMM_SSE_EQUIV) THENC
+   PRINT_TERM_CONV THENC
+   REWRITE_CONV[] THENC REWRITE_CONV[WRITE_SHORT; READ_SHORT] THENC
+   PRINT_TERM_CONV THENC
+   TOP_DEPTH_CONV COMPONENT_READ_OVER_WRITE_CONV THENC
+   PRINT_TERM_CONV 
+   ) `(RIP := word (pc + 465) ,,
+                                             (\s.
+                                                  if aligned_OPERAND128
+                                                     (Memop Word128
+                                                     (%% (rsp,96)))
+                                                     s /\
+                                                     aligned_OPERAND128
+                                                     (%_% xmm9)
+                                                     s
+                                                  then x86_MOVDQA
+                                                       (OPERAND128_SSE
+                                                        (%_% xmm9)
+                                                       s)
+                                                       (OPERAND128_SSE
+                                                        (Memop Word128
+                                                        (%% (rsp,96)))
+                                                       s)
+                                                       s
+                                                  else \s'. false))
+                                            s15
+                                            s16`;;
 let EQUIV = prove(equiv_goal,
 
   (* Rewrite SOME_FLAGS, ALL, nonoverlapping, and LENGTH * *)
@@ -2752,6 +2872,7 @@ let EQUIV = prove(equiv_goal,
   SUBGOAL_THEN `val (len:int64) = val (word_and len (word 18446744073709551600)) +
     val (word_and (word 15) len)` ASSUME_TAC THENL
   [CHEAT_TAC;ALL_TAC] THEN
+  POP_ASSUM(fun th -> LABEL_TAC "LEN_DO_NOT_CLEAR" th) THEN
   SUBGOAL_THEN `val (word_and (word 15) (len:int64)) < 16` ASSUME_TAC THENL
   [CHEAT_TAC;ALL_TAC] THEN
   ABBREV_TAC `len_blocks = val (word_and (len:int64) (word 18446744073709551600))` THEN
@@ -2768,9 +2889,244 @@ let EQUIV = prove(equiv_goal,
   ABBREV_TAC `y = len_blocks MOD 96` THEN
   POP_ASSUM(fun th -> LABEL_TAC "Y_DO_NOT_CLEAR" th) THEN
   (** CASE: len < 96, less than 6 blocks **)
-  (**  TODO: update the following for all cases less than 6 blocks **)
   ASM_CASES_TAC `len_blocks < 96` THENL
-  [ POP_ASSUM(fun th -> LABEL_TAC "cond_len0" th) THEN
+  [ CHEAT_TAC; ALL_TAC
+  ] THEN
+  (** CASE: len >= 96, equal or more than 6 blocks **)
+  REMOVE_THEN "X_Y_DO_NOT_CLEAR" (fun th -> RULE_ASSUM_TAC(SIMP_RULE[th]) THEN ASSUME_TAC th) THEN
+  POP_ASSUM(fun th -> LABEL_TAC "X_Y_DO_NOT_CLEAR" th) THEN
+  SUBGOAL_THEN `~(val (len:int64) < 96)` ASSUME_TAC THENL [ASM_ARITH_TAC; ALL_TAC] THEN
+  ASM_SIMP_TAC[] THEN
+  ENSURES2_WHILE_PAUP_TAC
+    `0` `(x:num)`
+    `pc + 0x180` `pc + 0x48C` `pc2 + 0x180` `pc2 + 0x4AA`
+    `\(i:num) (s1:x86state) (s1':x86state).
+        // input equivalence
+        read RDI s1 = word_add in_ptr (word (i * 96)) /\
+        read RDI s1' = word_add in_ptr (word (i * 96)) /\
+        data_block_equiv (s1,s1') in_ptr (val (len:int64)) /\
+        // output equivalence
+        read RSI s1 = word_add out_ptr (word (i * 96))  /\
+        read RSI s1' = word_add out_ptr (word (i * 96)) /\
+        data_block_equiv (s1,s1') out_ptr (i * 96) /\
+        // key schedule equivalence
+        (key_schedule_equiv (s1,s1') key1_ptr) /\
+        (key_schedule_equiv (s1,s1') key2_ptr) /\
+        // iv equivalence
+        (exists iv.
+          read (memory :> bytes128 iv_ptr) s1 = iv /\
+          read (memory :> bytes128 iv_ptr) s1' = iv) /\
+        // register values, TODO: actually all registers are used, update this part of the invariant
+        (inv_unchanged_ymms s1) /\ (inv_unchanged_ymms s1') /\
+        (inv_changed_ymms (s1,s1')) /\
+        // RSP
+        read RSP s1 = stack_pointer /\ read RSP s1' = stack_pointer /\
+        (inv_sp96 (s1,s1') stack_pointer)
+        `
+    `\(i:num) s. read CF s <=> (word i:int64) = word ((val (word_and (len:int64) (word 18446744073709551600))) DIV 96 - 1)`
+    `\(i:num) s. read CF s <=> (word i:int64) = word ((val (word_and (len:int64) (word 18446744073709551600))) DIV 96 - 1)`
+    `\(i:num). 188`
+    `\(i:num). 188`
+    `132` `132` `0` `0` `1` `1` THEN
+    REPEAT CONJ_TAC THENL [
+      (** Proving x > 0 **)
+      ASM_ARITH_TAC;
+
+      (** Proving precond ==> inv **)
+      (* Separate loading of constants *)
+      REWRITE_TAC[BYTES_LOADED_APPEND_CLAUSE] THEN
+      REWRITE_TAC[fst AES_HW_XTS_ENCRYPT_EXEC; fst AES_HW_XTS_ENCRYPT_CLEAN_EXEC] THEN
+      REWRITE_TAC[BYTES128_LOADED_DATA; BYTES128_LOADED_DATA_CLEAN] THEN
+      (* Initialization *)
+      EQUIV_INITIATE_TAC aes_xts_eqin THEN
+      EVERY_ASSUM(fun th ->
+       try MP_TAC(GEN_REWRITE_RULE I [key_schedule_equiv;ghost_ymms;data_block_equiv] th)
+       with Failure _ -> ALL_TAC) THEN
+      REPEAT STRIP_TAC THEN
+      (** Add xts_magic equivalence **)
+      ADD_ASSUM_TAC XTS_MAGIC_EQUIV THEN
+      (* Start symbolic simulation *)
+      EQUIV_STEPS_TAC [
+        ("equal",0,1,0,1);
+        ("replace",1,3,1,3);
+        ("equal",3,5,3,5);
+        ("replace",5,6,5,6);
+        ("equal",6,7,6,7);
+      ] AES_HW_XTS_ENCRYPT_EXEC AES_HW_XTS_ENCRYPT_CLEAN_EXEC THEN
+      (* .Loop_enc1_6 *)
+      AESENC_TAC (7,67) THEN
+      EQUIV_STEPS_TAC [
+        ("equal",72,75,72,75);
+        ("replace",75,79,75,79);
+      ] AES_HW_XTS_ENCRYPT_EXEC AES_HW_XTS_ENCRYPT_CLEAN_EXEC THEN
+      EQUIV_STEPS_TAC [
+        ("equal",79,80,79,80);
+      ] AES_HW_XTS_ENCRYPT_EXEC AES_HW_XTS_ENCRYPT_CLEAN_EXEC THEN
+      (* resolving alignment for movdqa *)
+      ADD_IMP_ASSUM_TAC alignment_lemma1 THEN
+      ADD_IMP_ASSUM_TAC alignment_lemma2 THEN
+      (* avoid YMM8 being wrongly dropped from the assumptions *)
+      ADD_ASSUM_TAC load_xts_magic_pc_equiv THEN
+      ADD_ASSUM_TAC load_xts_magic_clean_pc2_equiv THEN
+      EQUIV_STEPS_TAC [
+        ("replace",80,84,80,84);
+      ] AES_HW_XTS_ENCRYPT_EXEC AES_HW_XTS_ENCRYPT_CLEAN_EXEC THEN
+      RULE_ASSUM_TAC (CONV_RULE (TOP_DEPTH_CONV WORD_SIMPLE_SUBWORD_CONV)) THEN
+      FORCE_READ_EQ_TAC `YMM1` THEN
+      FORCE_READ_EQ_TAC `YMM8` THEN FORCE_READ_EQ_TAC `YMM9` THEN
+
+      TWEAK_TAC 84 `YMM10` THEN
+      TWEAK_TAC 92 `YMM11` THEN
+      TWEAK_TAC 100 `YMM12` THEN
+      TWEAK_TAC 108 `YMM13` THEN
+      TWEAK_LAST_TAC 116 `YMM14` THEN
+
+      EQUIV_STEPS_TAC [
+        ("equal",122,123,122,123);
+        ("replace",123,125,123,125);
+      ] AES_HW_XTS_ENCRYPT_EXEC AES_HW_XTS_ENCRYPT_CLEAN_EXEC THEN
+
+      EQUIV_STEPS_TAC [
+        ("replace",125,132,125,132);
+      ] AES_HW_XTS_ENCRYPT_EXEC AES_HW_XTS_ENCRYPT_CLEAN_EXEC THEN
+
+      REPEAT_N 2 ENSURES_N_FINAL_STATE_TAC THEN
+      ASM_REWRITE_TAC[] THEN
+      CONJ_TAC THENL [
+        (** SUBGOAL 1. Outputs **)
+        ASM_REWRITE_TAC[aes_xts_eqout; data_block_equiv] THEN
+        NUM_REDUCE_TAC THEN REWRITE_TAC[WORD_ADD_0] THEN
+        REMOVE_THEN "LEN_DO_NOT_CLEAR" (fun th -> REWRITE_TAC[SYM th] THEN ASSUME_TAC th) THEN
+        POP_ASSUM(fun th -> LABEL_TAC "LEN_DO_NOT_CLEAR" th) THEN
+        REPEAT CONJ_TAC THENL [
+          REPEAT (HINT_EXISTS_REFL_TAC THEN ASM_REWRITE_TAC[]);
+          REWRITE_TAC[READ_MEMORY_BYTES_TRIVIAL] THEN MESON_TAC[];
+          REWRITE_TAC[key_schedule_equiv] THEN REPEAT HINT_EXISTS_REFL_TAC THEN ASM_REWRITE_TAC[];
+          REWRITE_TAC[key_schedule_equiv] THEN REPEAT HINT_EXISTS_REFL_TAC THEN ASM_REWRITE_TAC[];
+          MESON_TAC[];
+          REWRITE_TAC[inv_unchanged_ymms] THEN REPEAT HINT_EXISTS_REFL_TAC THEN ASM_REWRITE_TAC[];
+          REWRITE_TAC[inv_unchanged_ymms] THEN REPEAT HINT_EXISTS_REFL_TAC THEN ASM_REWRITE_TAC[];
+          REWRITE_TAC[inv_changed_ymms] THEN CHEAT_TAC;
+          REWRITE_TAC[inv_sp96] THEN REPEAT HINT_EXISTS_REFL_TAC THEN ASM_REWRITE_TAC[];
+          ]
+        ;
+        (** SUBGOAL 2. Maychange pair **)
+        MONOTONE_MAYCHANGE_CONJ_TAC
+      ];
+
+      (** Proving loop body **)
+      REPEAT STRIP_TAC THEN
+      (* Separate loading of constants *)
+      REWRITE_TAC[BYTES_LOADED_APPEND_CLAUSE] THEN
+      REWRITE_TAC[fst AES_HW_XTS_ENCRYPT_EXEC; fst AES_HW_XTS_ENCRYPT_CLEAN_EXEC] THEN
+      REWRITE_TAC[BYTES128_LOADED_DATA; BYTES128_LOADED_DATA_CLEAN] THEN
+      (* Symbolically simulate the loop body for one iteration *)
+      ENSURES2_INIT_TAC "s0" "s0'" THEN
+      EVERY_ASSUM(fun th ->
+       try MP_TAC(GEN_REWRITE_RULE I 
+         [key_schedule_equiv;data_block_equiv;inv_unchanged_ymms;inv_changed_ymms;
+         inv_sp96] th)
+       with Failure _ -> ALL_TAC) THEN
+      REPEAT STRIP_TAC THEN
+      SUBGOAL_THEN ` exists in1.
+      (read (memory :> bytes128 (word_add in_ptr (word (i * 96)))) s0') = in1 /\
+      (read (memory :> bytes128 (word_add in_ptr (word (i * 96)))) s0) = in1` MP_TAC THENL
+      [CHEAT_TAC;ALL_TAC] THEN REPEAT STRIP_TAC THEN
+      EQUIV_STEPS_TAC [
+        ("equal", 0, 1, 0, 1);
+        ("delete", 1, 2, 1, 1)
+        ] AES_HW_XTS_ENCRYPT_EXEC AES_HW_XTS_ENCRYPT_CLEAN_EXEC THEN
+      SUBGOAL_THEN `(read (memory :> bytes128 (word_add in_ptr (word (i * 96 + 16)))) s1') = 
+      (read (memory :> bytes128 (word_add in_ptr (word (i * 96 + 16)))) s2)` MP_TAC THENL
+      [CHEAT_TAC;ALL_TAC] THEN REPEAT STRIP_TAC THEN
+      EQUIV_STEPS_TAC [
+        ("equal", 2, 3, 1, 2);
+        ("delete", 3, 4, 2, 2)
+        ] AES_HW_XTS_ENCRYPT_EXEC AES_HW_XTS_ENCRYPT_CLEAN_EXEC THEN
+      SUBGOAL_THEN `exists in3.
+      (read (memory :> bytes128 (word_add in_ptr (word (i * 96 + 32)))) s2') = in3 /\
+      (read (memory :> bytes128 (word_add in_ptr (word (i * 96 + 32)))) s4) = in3` MP_TAC THENL
+      [CHEAT_TAC;ALL_TAC] THEN REPEAT STRIP_TAC THEN
+      EQUIV_STEPS_TAC [
+        ("equal", 4, 5, 2, 3);
+        ("delete", 5, 7, 3, 3)
+        ] AES_HW_XTS_ENCRYPT_EXEC AES_HW_XTS_ENCRYPT_CLEAN_EXEC THEN
+      SUBGOAL_THEN `exists in4.
+      (read (memory :> bytes128 (word_add in_ptr (word (i * 96 + 48)))) s3') = in4 /\
+      (read (memory :> bytes128 (word_add in_ptr (word (i * 96 + 48)))) s7) = in4` MP_TAC THENL
+      [CHEAT_TAC;ALL_TAC] THEN REPEAT STRIP_TAC THEN
+      EQUIV_STEPS_TAC [
+        ("equal", 7, 8, 3, 4);
+        ("delete", 8, 10, 4, 4)
+        ] AES_HW_XTS_ENCRYPT_EXEC AES_HW_XTS_ENCRYPT_CLEAN_EXEC THEN
+      SUBGOAL_THEN `exists in5.
+      (read (memory :> bytes128 (word_add in_ptr (word (i * 96 + 64)))) s4') = in5 /\
+      (read (memory :> bytes128 (word_add in_ptr (word (i * 96 + 64)))) s10) = in5` MP_TAC THENL
+      [CHEAT_TAC;ALL_TAC] THEN REPEAT STRIP_TAC THEN
+      EQUIV_STEPS_TAC [
+        ("equal", 10, 11, 4, 5);
+        ("delete", 11, 13, 5, 5)
+        ] AES_HW_XTS_ENCRYPT_EXEC AES_HW_XTS_ENCRYPT_CLEAN_EXEC THEN
+      SUBGOAL_THEN `exists in6.
+      (read (memory :> bytes128 (word_add in_ptr (word (i * 96 + 80)))) s5') = in6 /\
+      (read (memory :> bytes128 (word_add in_ptr (word (i * 96 + 80)))) s13) = in6` MP_TAC THENL
+      [CHEAT_TAC;ALL_TAC] THEN REPEAT STRIP_TAC THEN
+      EQUIV_STEPS_TAC [
+        ("equal", 13, 14, 5, 6);
+        ("insert", 14, 14, 6, 7);
+      ] AES_HW_XTS_ENCRYPT_EXEC AES_HW_XTS_ENCRYPT_CLEAN_EXEC THEN
+      EQUIV_STEPS_TAC [
+        ("equal", 14, 15, 7, 8)
+      ] AES_HW_XTS_ENCRYPT_EXEC AES_HW_XTS_ENCRYPT_CLEAN_EXEC THEN
+      EQUIV_STEPS_TAC [
+        ("replace", 15, 16, 8, 12);
+        ("equal", 16, 17, 12, 13);
+        ("delete", 17, 20, 13, 13);
+        ("equal", 20, 21, 13, 14);
+        ("replace", 21, 22, 14, 18);
+        ("equal", 22, 23, 18, 19);
+      ] AES_HW_XTS_ENCRYPT_EXEC AES_HW_XTS_ENCRYPT_CLEAN_EXEC THEN
+      (* TODO: need to know the following facts *)
+      SUBGOAL_THEN 
+        `i * 96 <= val len /\ 
+         i * 96 + 16 <= val len /\ 
+         (i * 96 + 64) + 16 <= val len /\
+         (i * 96 + 32) + 16 <= val len /\
+         (i * 96 + 48) + 16 <= val len /\
+         (i * 96 + 80) + 16 <= val len
+         ` ASSUME_TAC THENL
+      [CHEAT_TAC;ALL_TAC] THEN
+      EQUIV_STEPS_TAC [
+        ("delete", 23, 25, 19, 19);
+        (* ("equal", 25, 26, 19, 20);
+        ("replace", 26, 28, 20, 21);
+        ("equal", 28, 29, 21, 22);
+        ("delete", 29, 31, 22, 22);
+        ("equal", 31, 32, 22, 23);
+        ("delete", 32, 34, 23, 23);
+        ("equal", 34, 36, 23, 25);
+        ("delete", 36, 38, 25, 25);
+        ("equal", 38, 40, 25, 27);
+        ("replace", 40, 41, 27, 39);
+        ("equal", 41, 42, 39, 40);
+        ("replace", 42, 43, 40, 43);
+        ("equal", 43, 43, 43, 43); *)
+      ] AES_HW_XTS_ENCRYPT_EXEC AES_HW_XTS_ENCRYPT_CLEAN_EXEC THEN
+
+
+      ;
+
+      CHEAT_TAC;
+      CHEAT_TAC;
+      CHEAT_TAC;
+      CHEAT_TAC;
+    ]
+
+
+
+
+
+    POP_ASSUM(fun th -> LABEL_TAC "cond_len0" th) THEN
     RULE_ASSUM_TAC(REWRITE_RULE[CONJUNCT1 LE]) THEN
     ADD_IMP_ASSUM_TAC(WORD_RULE `val (len:int64) = 0 ==> len = (word 0)`) THEN
     (* MP_TAC (WORD_ARITH `val (len:int64) >= 0`) THEN STRIP_TAC THEN *)
@@ -2868,125 +3224,6 @@ let EQUIV = prove(equiv_goal,
       REWRITE_TAC[MAYCHANGE_REGS_AND_FLAGS_PERMITTED_BY_ABI] THEN
       MONOTONE_MAYCHANGE_CONJ_TAC
     ]; ALL_TAC
-  ] THEN
-  (** CASE: len >= 96, equal or more than 6 blocks **)
-  REMOVE_THEN "X_Y_DO_NOT_CLEAR" (fun th -> RULE_ASSUM_TAC(SIMP_RULE[th]) THEN ASSUME_TAC th) THEN
-  SUBGOAL_THEN `~(val (len:int64) < 96)` ASSUME_TAC THENL [ASM_ARITH_TAC; ALL_TAC] THEN
-  ASM_SIMP_TAC[] THEN
-  ENSURES2_WHILE_PAUP_TAC
-    `0` `(x:num)`
-    `pc + 0x180` `pc + 0x48C` `pc2 + 0x180` `pc2 + 0x4AA`
-    `\(i:num) (s1:x86state) (s2:x86state). 
-        read RSI s1 = word_add out_ptr (word (i * 96))  /\
-        read RSI s2 = word_add out_ptr (word (i * 96)) /\
-        data_block_equiv (s1,s2) out_ptr (i * 96)`
-    `\(i:num) s. read CF s <=> (word i:int64) = word ((val (word_and (len:int64) (word 18446744073709551600))) DIV 96 - 1)`
-    `\(i:num) s. read CF s <=> (word i:int64) = word ((val (word_and (len:int64) (word 18446744073709551600))) DIV 96 - 1)`
-    `\(i:num). 188`
-    `\(i:num). 188`
-    `132` `132` `0` `0` `1` `1` THEN
-    REPEAT CONJ_TAC THENL [
-      (** Proving x > 0 **)
-      ASM_ARITH_TAC;
-
-      (** Proving precond ==> inv **)
-      (* Separate loading of constants *)
-      REWRITE_TAC[BYTES_LOADED_APPEND_CLAUSE] THEN
-      REWRITE_TAC[fst AES_HW_XTS_ENCRYPT_EXEC; fst AES_HW_XTS_ENCRYPT_CLEAN_EXEC] THEN
-      REWRITE_TAC[BYTES128_LOADED_DATA; BYTES128_LOADED_DATA_CLEAN] THEN
-      (* Initialization *)
-      EQUIV_INITIATE_TAC aes_xts_eqin THEN
-      EVERY_ASSUM(fun th ->
-       try MP_TAC(GEN_REWRITE_RULE I [key_schedule_equiv;ghost_ymms] th)
-       with Failure _ -> ALL_TAC) THEN
-      REPEAT STRIP_TAC THEN
-      (** Add xts_magic equivalence **)
-      ADD_ASSUM_TAC XTS_MAGIC_EQUIV THEN
-      (* Start symbolic simulation *)
-      EQUIV_STEPS_TAC [
-        ("equal",0,1,0,1);
-        ("replace",1,3,1,3);
-        ("equal",3,5,3,5);
-        ("replace",5,6,5,6);
-        ("equal",6,7,6,7);
-      ] AES_HW_XTS_ENCRYPT_EXEC AES_HW_XTS_ENCRYPT_CLEAN_EXEC THEN
-      (* .Loop_enc1_6 *)
-      AESENC_TAC (7,67) THEN
-      EQUIV_STEPS_TAC [
-        ("equal",72,75,72,75);
-        ("replace",75,79,75,79);
-      ] AES_HW_XTS_ENCRYPT_EXEC AES_HW_XTS_ENCRYPT_CLEAN_EXEC THEN
-      EQUIV_STEPS_TAC [
-        ("equal",79,80,79,80);
-      ] AES_HW_XTS_ENCRYPT_EXEC AES_HW_XTS_ENCRYPT_CLEAN_EXEC THEN
-      (* resolving alignment for movdqa *)
-      ADD_IMP_ASSUM_TAC alignment_lemma1 THEN
-      ADD_IMP_ASSUM_TAC alignment_lemma2 THEN
-      (* avoid YMM8 being wrongly dropped from the assumptions *)
-      ADD_ASSUM_TAC load_xts_magic_pc_equiv THEN
-      ADD_ASSUM_TAC load_xts_magic_clean_pc2_equiv THEN
-      EQUIV_STEPS_TAC [
-        ("replace",80,84,80,84);
-      ] AES_HW_XTS_ENCRYPT_EXEC AES_HW_XTS_ENCRYPT_CLEAN_EXEC THEN
-      RULE_ASSUM_TAC (CONV_RULE (TOP_DEPTH_CONV WORD_SIMPLE_SUBWORD_CONV)) THEN
-      FORCE_READ_EQ_TAC `YMM1` THEN
-      FORCE_READ_EQ_TAC `YMM8` THEN FORCE_READ_EQ_TAC `YMM9` THEN
-
-      TWEAK_TAC 84 `YMM10` THEN
-      TWEAK_TAC 92 `YMM11` THEN
-      TWEAK_TAC 100 `YMM12` THEN
-      TWEAK_TAC 108 `YMM13` THEN
-      TWEAK_LAST_TAC 116 `YMM14` THEN
-
-      EQUIV_STEPS_TAC [
-        ("equal",122,123,122,123);
-        ("replace",123,125,123,125);
-      ] AES_HW_XTS_ENCRYPT_EXEC AES_HW_XTS_ENCRYPT_CLEAN_EXEC THEN
-
-      EQUIV_STEPS_TAC [
-        ("replace",125,132,125,132);
-      ] AES_HW_XTS_ENCRYPT_EXEC AES_HW_XTS_ENCRYPT_CLEAN_EXEC THEN
-
-      REPEAT_N 2 ENSURES_N_FINAL_STATE_TAC THEN
-      ASM_REWRITE_TAC[] THEN
-      CONJ_TAC THENL [
-        (** SUBGOAL 1. Outputs **)
-        ASM_REWRITE_TAC[aes_xts_eqout] THEN
-        ONCE_REWRITE_TAC[data_block_equiv] THEN
-        NUM_REDUCE_TAC THEN REWRITE_TAC[WORD_ADD_0] THEN
-        (* TODO: prove
-        `exists n.
-     read (memory :> bytes (out_ptr,0)) s132 = n /\
-     read (memory :> bytes (out_ptr,0)) s132' = n`
-        *)
-        CHEAT_TAC
-        ;
-        (** SUBGOAL 2. Maychange pair **)
-        MONOTONE_MAYCHANGE_CONJ_TAC
-      ];
-
-      (** Proving loop body **)
-      REPEAT STRIP_TAC THEN
-      (* Separate loading of constants *)
-      REWRITE_TAC[BYTES_LOADED_APPEND_CLAUSE] THEN
-      REWRITE_TAC[fst AES_HW_XTS_ENCRYPT_EXEC; fst AES_HW_XTS_ENCRYPT_CLEAN_EXEC] THEN
-      REWRITE_TAC[BYTES128_LOADED_DATA; BYTES128_LOADED_DATA_CLEAN] THEN
-      (* Initialization *)
-      EQUIV_INITIATE_TAC aes_xts_eqin THEN
-      EVERY_ASSUM(fun th ->
-       try MP_TAC(GEN_REWRITE_RULE I [key_schedule_equiv;ghost_ymms] th)
-       with Failure _ -> ALL_TAC) THEN
-      REPEAT STRIP_TAC THEN
-      (** Add xts_magic equivalence **)
-      ADD_ASSUM_TAC XTS_MAGIC_EQUIV THEN
-
-      ;
-
-      CHEAT_TAC;
-      CHEAT_TAC;
-      CHEAT_TAC;
-      CHEAT_TAC;
-    ]
 
 
 
