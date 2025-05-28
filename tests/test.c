@@ -11256,7 +11256,6 @@ int test_mlkem_keccak_f1600(void)
          { printf("Error in keccak_f1600 element i = %"PRIu64"; "
                   "code[i] = 0x%016"PRIx64" while reference[i] = 0x%016"PRIx64">\n",
                   i,c[i],b[i]);
-          
          }
       }
      if (VERBOSE)
