@@ -241,7 +241,7 @@ loop_keccak:
 		
 		//test DWORD PTR [r15], -1
 		add r12, 1
-		test r12, 24
+		cmp r12, 24
 		jne    loop_keccak
 
 		//.  lea    r15, [r15-0xc0]
@@ -262,7 +262,7 @@ loop_keccak:
 		//.  pop    r12
 		//.  pop    rbp
 		//.  pop    rbx
-		ret
+		retq
 
 #if defined(__linux__) && defined(__ELF__)
 .section .note.GNU-stack,  "",  %progbits
