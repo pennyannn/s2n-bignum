@@ -398,6 +398,13 @@ BIGNUM_OBJ = curve25519/bignum_add_p25519.o \
              mlkem/mlkem_keccak_f1600_macros.o \
              mlkem/mlkem_keccak_f1600_no_loop.o \
              mlkem/mlkem_keccak_f1600_loop_invar.o \
+             mlkem/mlkem_keccak_f1600_counter.o \
+             mlkem/mlkem_keccak_f1600_loop_body.o \
+             mlkem/mlkem_keccak_f1600_loop_all.o \
+             mlkem/mlkem_keccak_f1600_loop_stack.o \
+              mlkem/mlkem_keccak_f1600_loop_one_push.o \
+              mlkem/mlkem_keccak_f1600_loop_unroll_x2.o \
+               mlkem/mlkem_keccak_f1600_loop_two_push.o \
 
 OBJ = $(POINT_OBJ) $(BIGNUM_OBJ)
 
@@ -405,7 +412,7 @@ OBJ = $(POINT_OBJ) $(BIGNUM_OBJ)
 
 TUTORIAL_PROOFS = $(wildcard tutorial/*.ml)
 
-TUTORIAL_OBJ = $(TUTORIAL_PROOFS:.ml=.o) tutorial/rel_simp2.o tutorial/rel_equivtac2.o tutorial/rel_reordertac2.o
+TUTORIAL_OBJ = $(TUTORIAL_PROOFS:.ml=.o) tutorial/loop.o tutorial/rel_simp2.o tutorial/rel_equivtac2.o tutorial/rel_reordertac2.o
 
 .PHONY: bmi clean clobber
 
