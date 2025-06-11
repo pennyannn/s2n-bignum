@@ -576,6 +576,7 @@ let WORDLIST_FROM_MEMORY_CONV =
   (\s. bytes_loaded s (word pc) mlkem_keccak_f1600_mc_loop_unroll_2 /\
        read RIP s = word pc /\
        read RSP s = stackpointer /\
+       read RDI s = bitstate_in /\
        read (memory :> bytes64 stackpointer) s = returnaddress /\
        C_ARGUMENTS [bitstate_in; rc_pointer] s /\
                 wordlist_from_memory(rc_pointer,24) s = rc_table
