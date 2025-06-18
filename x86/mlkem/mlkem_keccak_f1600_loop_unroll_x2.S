@@ -22,6 +22,7 @@ S2N_BN_SYMBOL(mlkem_keccak_f1600_loop_unroll_x2):
 		not    QWORD PTR [rdi+0x64-0x4]
 		not    QWORD PTR [rdi+0x64+0x24]
 		not    QWORD PTR [rdi+0x64+0x3c]
+
 		lea    rsi, [rsp] // bitstate output temp
 		mov    rax, QWORD PTR [rdi+0x64+0x3c]
 		mov    rbx, QWORD PTR [rdi+0x64+0x44]
@@ -226,6 +227,7 @@ loop_keccak:
 		 mov    rbp, rdx
 		 mov    rdx, r13
 		 
+		 
 		 lea    r15, [r15+0x8]     // Second loop
 		 mov    r8, QWORD PTR [rdi+0x64-0x64]
 		 mov    r9, QWORD PTR [rdi+0x64-0x34]
@@ -423,8 +425,8 @@ loop_keccak:
 		 mov    rdx, r13
 		 lea    r15, [r15+0x8]
 		pop r8
-		add r8, 0x1
-		cmp r8,  12
+		add r8, 0x2
+		cmp r8,  24
 		jne    loop_keccak
 
 		lea    r15, [r15-0xc0]
