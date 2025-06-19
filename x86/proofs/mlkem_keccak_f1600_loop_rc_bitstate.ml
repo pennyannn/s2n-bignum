@@ -15,6 +15,17 @@
  (**** print_literal_from_elf "x86/mlkem/mlkem_keccak_f1600_loop_unroll_x2.o";;
  ****)
 
+let NOT_NOT_ELIM_2 = prove
+  (`!A. ~(~A) ==> A`,
+   GEN_TAC THEN
+   DISCH_TAC THEN
+   MATCH_MP_TAC (TAUT `(~A ==> F) ==> A`) THEN
+   DISCH_TAC THEN
+   UNDISCH_TAC `~(~A)` THEN
+   ASM_REWRITE_TAC[]);;
+
+
+
  let GHOST_REGLIST_TAC =
   W(fun (asl,w) ->
         let regreads = map rator (dest_list(find_term is_list w)) in
@@ -515,10 +526,10 @@ let mlkem_keccak_f1600_mc_rc_bitst = define_assert_from_elf
  let MLKEM_KECCAK_F1600_EXEC_rc_bitst = X86_MK_EXEC_RULE mlkem_keccak_f1600_mc_rc_bitst;;
 
  let wordlist_from_memory = define
- `wordlist_from_memory(a,0) s = [] /\
-  wordlist_from_memory(a,SUC n) s =
-  APPEND (wordlist_from_memory(a,n) s)
-         [read (memory :> bytes64(word_add a (word(8 * n)))) s]`;;
+ `wordlist_from_memory(bitstate_in,0) s = [] /\
+  wordlist_from_memory(bitstate_in,SUC n) s =
+  APPEND (wordlist_from_memory(bitstate_in,n) s)
+         [read (memory :> bytes64(word_add bitstate_in (word(8 * n)))) s]`;;
 
 let WORDLIST_FROM_MEMORY_CONV =
   let uconv =
@@ -530,8 +541,49 @@ let WORDLIST_FROM_MEMORY_CONV =
     ONCE_DEPTH_CONV NUM_MULT_CONV THENC
     GEN_REWRITE_CONV ONCE_DEPTH_CONV [WORD_ADD_0] THENC
     GEN_REWRITE_CONV TOP_DEPTH_CONV [APPEND]
-  and filt = can (term_match [] `wordlist_from_memory(a,NUMERAL n) s`) in
+  and filt = can (term_match [] `wordlist_from_memory(bitstate_in,NUMERAL n) s`) in
   conv o check filt;;
+
+  (* First, create a tactic that applies NOT_NOT_ELIM to a specific variable *)
+let APPLY_NOT_NOT_TO_VAR var =
+  let pattern = mk_neg(mk_neg(var)) in
+  SUBGOAL_THEN (mk_imp(pattern, var)) 
+               (fun th -> MP_TAC (MATCH_MP th (ASSUME pattern))) THEN
+  MATCH_ACCEPT_TAC NOT_NOT_ELIM;;
+
+  (* Create a tactic that searches for and simplifies any double negations *)
+let SIMPLIFY_ALL_DOUBLE_NEGATIONS =
+  let rec find_and_simplify () =
+    (FIRST_X_ASSUM (fun th ->
+      try 
+        let tm = concl th in
+        if is_neg tm && is_neg (dest_neg tm) then
+          let var = dest_neg (dest_neg tm) in
+          UNDISCH_TAC (string_of_term tm) THEN
+          DISCH_THEN (fun th2 -> 
+            ASSUME_TAC (MATCH_MP NOT_NOT_ELIM th2)) THEN
+          find_and_simplify ()
+        else
+          FAIL_TAC "Not a double negation"
+      with _ -> FAIL_TAC "Not applicable"))
+    ORELSE ALL_TAC
+  in
+  find_and_simplify ();;
+
+
+
+(* Create a tactic that applies NOT_NOT_ELIM to specific variables in a list *)
+let SIMPLIFY_DOUBLE_NEGATION vars =
+  let rec process_vars = function
+    | [] -> ALL_TAC
+    | v::vs ->
+        let var = mk_var(v, `:bool`) in
+        try 
+          (APPLY_NOT_NOT_TO_VAR var THEN process_vars vs) 
+        with _ -> 
+          process_vars vs
+  in
+  process_vars vars;;
 
 
   let MLKEM_KECCAK_F1600_SPEC = prove(
@@ -581,6 +633,14 @@ WORD_FORALL_OFFSET_TAC 256 THEN
               ALL; ALLPAIRS; NONOVERLAPPING_CLAUSES] THEN
   DISCH_THEN(REPEAT_TCL CONJUNCTS_THEN ASSUME_TAC) THEN
 
+   (* MAP2 (\(x:bool) (y:(64)word). (if x then (word_not y) else y))
+              [false; true;  true;  false; false; 
+              false; false; false; true;  false; 
+              false; false; true;  false; false; 
+              false; false; true;  false; false;
+              true;  false; false; false; false]
+              (wordlist_from_memory(bitstate_in,25) s) = keccak (2*i) A  *)
+
   
   REPEAT STRIP_TAC THEN
 
@@ -595,13 +655,12 @@ WORD_FORALL_OFFSET_TAC 256 THEN
             read RSI s = word_add stackpointer (word 8) /\
             read (memory :> bytes64 (word_add stackpointer (word 256))) s = returnaddress /\
             wordlist_from_memory(rc_pointer,24) s = rc_table /\
-           MAP2 (\(x:bool) (y:(64)word). (if x then (word_not y) else y))
-              [false; true;  true;  false; false; 
+            MAP2 (\(x:bool) (y:(64)word). (if x then (word_not y) else y))
+              ([false; true;  true;  false; false; 
               false; false; false; true;  false; 
               false; false; true;  false; false; 
               false; false; true;  false; false;
-              true;  false; false; false; false]
-              (wordlist_from_memory(bitstate_in,25) s) = keccak (2*i) A )  /\
+              true;  false; false; false; false]) (keccak (2*i) A)  = wordlist_from_memory(bitstate_in,25) s)  /\
            // loop backedge condition
            (read ZF s <=> i = 12)` THEN
 
@@ -610,31 +669,50 @@ WORD_FORALL_OFFSET_TAC 256 THEN
       (* loop_body begin < loop_body end *)
       ARITH_TAC;
 
-      REWRITE_TAC[rc_table; CONS_11; GSYM CONJ_ASSOC; WORDLIST_FROM_MEMORY_CONV `wordlist_from_memory(rc_pointer,24) s:int64 list`] THEN
+      REWRITE_TAC[rc_table; CONS_11; GSYM CONJ_ASSOC; WORDLIST_FROM_MEMORY_CONV `wordlist_from_memory(rc_pointer,24) s:int64 list`;
+                WORDLIST_FROM_MEMORY_CONV `wordlist_from_memory(bitstate_in,25) s:int64 list`] THEN
       ENSURES_INIT_TAC "s0" THEN
       BIGNUM_DIGITIZE_TAC "A_" `read (memory :> bytes (bitstate_in,8 * 25)) s0` THEN
-      FIRST_ASSUM(MP_TAC o CONV_RULE(LAND_CONV WORDLIST_FROM_MEMORY_CONV)) THEN
+      
+      X86_STEPS_TAC MLKEM_KECCAK_F1600_EXEC_rc_bitst (1--21) THEN
+      ENSURES_FINAL_STATE_TAC THEN ASM_REWRITE_TAC[] THEN
 
-      ASM_REWRITE_TAC[] THEN DISCH_TAC THEN
+   REPEAT CONJ_TAC THENL 
+    [
 
-      (* entrance to the loop *)
-      (* Use  X86_SIM_TAC which is ENSURES_INIT_TAC + X86_STEPS_TAC +
-        ENSURES_FINAL_STATE_TAC + some post-processing. *)
+   CONV_TAC WORD_RULE;
 
-  X86_STEPS_TAC MLKEM_KECCAK_F1600_EXEC_rc_bitst (1--21) THEN
-  ENSURES_FINAL_STATE_TAC THEN
-   ASM_REWRITE_TAC[] THEN
+EXPAND_TAC "A" THEN
+CHANGED_TAC(PURE_ONCE_REWRITE_TAC[ARITH_RULE `2 * 0 = 0`]) THEN
+CHANGED_TAC(REWRITE_TAC[keccak; MAP2]);
+
+  (* CHANGED_TAC(GEN_REWRITE_TAC (RAND_CONV o ONCE_DEPTH_CONV)
+       [ARITH_RULE `2 * 1 = (0 + 1) + 1`]) THEN
+      ASM_REWRITE_TAC[WORD_ADD_0] THEN
+      
 
 
 
-      EXPAND_TAC "A" THEN
-    SUBST1_TAC(MESON[MULT_CLAUSES] `keccak 2 = keccak (2 * 1)`) THEN
+REWRITE_TAC[NOT_NOT_ELIM_2] THEN
+
+MATCH_MP_TAC NOT_NOT_ELIM THEN
+   
+
+ CONV_TAC(RAND_CONV NUM_REDUCE_CONV) THEN
+(* ASM_REWRITE_TAC[rc_table; WORD_ADD_0] THEN *)
+CONV_TAC(ONCE_DEPTH_CONV EL_CONV) THEN
+ REPEAT STRIP_TAC THEN FIRST_ASSUM MATCH_MP_TAC THEN
+  ASM_REWRITE_TAC[]
+
+
     REWRITE_TAC[keccak; rc_table; EL; HD] THEN
     REWRITE_TAC[rc_table] THEN CONV_TAC(ONCE_DEPTH_CONV EL_CONV) THEN
-    CONV_TAC(TOP_DEPTH_CONV let_CONV) THEN
+    (* CONV_TAC(TOP_DEPTH_CONV let_CONV) THEN *)
     REWRITE_TAC[MAP2] THEN REWRITE_TAC[CONS_11] THEN
-    REPEAT CONJ_TAC THEN BITBLAST_TAC;
 
+ REWRITE_TAC[NOT_DEF] THEN
+    
+REPEAT CONJ_TAC THEN BITBLAST_TAC; *)
 
       (* X86_SIM_TAC MLKEM_KECCAK_F1600_EXEC_rc_bitst (1--21); *)
 
