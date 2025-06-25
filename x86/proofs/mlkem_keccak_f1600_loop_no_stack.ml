@@ -12,7 +12,7 @@
 ******************************************************************************)
 
 (* When there is no bitstate_out *)
- (**** print_literal_from_elf "x86/mlkem/mlkem_keccak_f1600_loop_unroll_x2.o";;
+ (**** print_literal_from_elf "x86/mlkem/mlkem_keccak_f1600_loop_no_stack.o";;
  ****)
 
  let GHOST_REGLIST_TAC =
@@ -23,7 +23,7 @@
         EVERY(map2 GHOST_INTRO_TAC ghostvars regreads));;
 
 let mlkem_keccak_f1600_mc_rc_bitst_2 = define_assert_from_elf
-  "mlkem_keccak_f1600_mc_rc_bitst_2" "x86/mlkem/mlkem_keccak_f1600_loop_unroll_x2.o"
+  "mlkem_keccak_f1600_mc_rc_bitst_2" "x86/mlkem/mlkem_keccak_f1600_loop_no_stack.o"
 [
   0x53;                    (* PUSH (% rbx) *)
   0x55;                    (* PUSH (% rbp) *)
