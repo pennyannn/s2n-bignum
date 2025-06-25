@@ -12,7 +12,7 @@
 ******************************************************************************)
 
 (* When there is no bitstate_out *)
- (**** print_literal_from_elf "x86/mlkem/mlkem_keccak_f1600_loop_no_stack.o";;
+ (**** print_literal_from_elf "x86/mlkem/mlkem_keccak_f1600_no_stack.o";;
  ****)
 
  let GHOST_REGLIST_TAC =
@@ -23,7 +23,7 @@
         EVERY(map2 GHOST_INTRO_TAC ghostvars regreads));;
 
 let mlkem_keccak_f1600_mc_rc_bitst_2 = define_assert_from_elf
-  "mlkem_keccak_f1600_mc_rc_bitst_2" "x86/mlkem/mlkem_keccak_f1600_loop_no_stack.o"
+  "mlkem_keccak_f1600_mc_rc_bitst_2" "x86/mlkem/mlkem_keccak_f1600_no_stack.o"
 [
   0x53;                    (* PUSH (% rbx) *)
   0x55;                    (* PUSH (% rbp) *)
@@ -538,9 +538,9 @@ let WORDLIST_FROM_MEMORY_CONV =
 
   let MLKEM_KECCAK_F1600_SPEC = prove(
   `forall rc_pointer:int64 pc:num stackpointer:int64 bitstate_in:int64 A.
-  nonoverlapping_modulo (2 EXP 64) (pc,0x66c) (val  stackpointer, 264) /\
-  nonoverlapping_modulo (2 EXP 64) (pc, 0x66c) (val bitstate_in,200) /\
-  nonoverlapping_modulo (2 EXP 64) (pc, 0x66c) (val rc_pointer,192) /\
+  nonoverlapping_modulo (2 EXP 64) (pc, LENGTH mlkem_keccak_f1600_mc_rc_bitst_2) (val  stackpointer, 264) /\
+  nonoverlapping_modulo (2 EXP 64) (pc, LENGTH mlkem_keccak_f1600_mc_rc_bitst_2) (val bitstate_in,200) /\
+  nonoverlapping_modulo (2 EXP 64) (pc, LENGTH mlkem_keccak_f1600_mc_rc_bitst_2) (val rc_pointer,192) /\
 
   nonoverlapping_modulo (2 EXP 64) (val bitstate_in,200) (val stackpointer,264) /\
   nonoverlapping_modulo (2 EXP 64) (val bitstate_in,200) (val rc_pointer,192) /\
@@ -572,8 +572,10 @@ let WORDLIST_FROM_MEMORY_CONV =
 
   REWRITE_TAC[SOME_FLAGS] THEN
   MAP_EVERY X_GEN_TAC [`rc_pointer:int64`; `pc:num`] THEN
-WORD_FORALL_OFFSET_TAC 256 THEN
-  CONV_TAC(ONCE_DEPTH_CONV NORMALIZE_RELATIVE_ADDRESS_CONV) THEN
+  REWRITE_TAC [(REWRITE_CONV [mlkem_keccak_f1600_mc_rc_bitst_2] THENC LENGTH_CONV) `LENGTH mlkem_keccak_f1600_mc_rc_bitst_2`] THEN
+
+(* WORD_FORALL_OFFSET_TAC 256 THEN
+  CONV_TAC(ONCE_DEPTH_CONV NORMALIZE_RELATIVE_ADDRESS_CONV) THEN *)
 
     MAP_EVERY X_GEN_TAC [`stackpointer:int64`;`bitstate_in:int64`;`A:int64 list`] THEN
 
@@ -624,7 +626,7 @@ WORD_FORALL_OFFSET_TAC 256 THEN
                     WORDLIST_FROM_MEMORY_CONV `wordlist_from_memory(bitstate_in,25) s:int64 list`] THEN
           ENSURES_INIT_TAC "s0" THEN
           BIGNUM_DIGITIZE_TAC "A_" `read (memory :> bytes (bitstate_in,8 * 25)) s0` THEN
-          X86_STEPS_TAC MLKEM_KECCAK_F1600_EXEC_rc_bitst (1--2) THEN
+          X86_STEPS_TAC MLKEM_KECCAK_F1600_EXEC_rc_bitst (1--21) THEN
           ENSURES_FINAL_STATE_TAC THEN ASM_REWRITE_TAC[] THEN
           REPEAT CONJ_TAC THENL 
           [
