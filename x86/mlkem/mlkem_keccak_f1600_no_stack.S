@@ -226,8 +226,6 @@ loop_keccak:
 		 mov    QWORD PTR [rdi+0x64+0x44], rbx
 		 mov    rbp, rdx
 		 mov    rdx, r13
-		 
-		 
 		 lea    r15, [r15+0x8]     // Second loop
 		 mov    r8, QWORD PTR [rdi+0x64-0x64]
 		 mov    r9, QWORD PTR [rdi+0x64-0x34]
@@ -424,7 +422,6 @@ loop_keccak:
 		 mov    rbp, rdx
 		 mov    rdx, r13
 		 lea    r15, [r15+0x8]
-		// pop r8
 		mov   r8,  QWORD PTR [rsp + 0xc8]
 		add r8, 0x2
 		cmp r8,  24
