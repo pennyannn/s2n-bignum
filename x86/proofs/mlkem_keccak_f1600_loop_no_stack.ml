@@ -515,10 +515,7 @@ let mlkem_keccak_f1600_x86_mc_2 = define_assert_from_elf
 ];;
 
 
-let mlkem_keccak_f1600_x86_tmc_2 = define_trimmed "mlkem_keccak_f1600_x86_tmc_2" mlkem_keccak_f1600_x86_mc_2;;
-
-
- let MLKEM_KECCAK_F1600_EXEC_2 = X86_MK_EXEC_RULE mlkem_keccak_f1600_x86_tmc_2;;
+ let MLKEM_KECCAK_F1600_EXEC_2 = X86_MK_EXEC_RULE mlkem_keccak_f1600_x86_mc_2;;
 
  let wordlist_from_memory = define
  `wordlist_from_memory(bitstate_in,0) s = [] /\
@@ -546,9 +543,9 @@ let WORDLIST_FROM_MEMORY_CONV =
 
   let MLKEM_KECCAK_F1600_SPEC = prove(
   `forall rc_pointer:int64 pc:num stackpointer:int64 bitstate_in:int64 A.
-  nonoverlapping_modulo (2 EXP 64) (pc, LENGTH mlkem_keccak_f1600_x86_tmc_2) (val  stackpointer, 264) /\
-  nonoverlapping_modulo (2 EXP 64) (pc, LENGTH mlkem_keccak_f1600_x86_tmc_2) (val bitstate_in, 200) /\
-  nonoverlapping_modulo (2 EXP 64) (pc, LENGTH mlkem_keccak_f1600_x86_tmc_2) (val rc_pointer, 192) /\
+  nonoverlapping_modulo (2 EXP 64) (pc, LENGTH mlkem_keccak_f1600_x86_mc_2) (val  stackpointer, 264) /\
+  nonoverlapping_modulo (2 EXP 64) (pc, LENGTH mlkem_keccak_f1600_x86_mc_2) (val bitstate_in, 200) /\
+  nonoverlapping_modulo (2 EXP 64) (pc, LENGTH mlkem_keccak_f1600_x86_mc_2) (val rc_pointer, 192) /\
 
   nonoverlapping_modulo (2 EXP 64) (val bitstate_in,200) (val rc_pointer,192) /\
   nonoverlapping_modulo (2 EXP 64) (val bitstate_in,200) (val stackpointer, 264) /\
@@ -562,8 +559,8 @@ let WORDLIST_FROM_MEMORY_CONV =
   // the output of the previous interaiton will serve as an input to the following iteration
       ==> ensures x86
   // Precondition
-  (\s. bytes_loaded s (word pc) mlkem_keccak_f1600_x86_tmc_2 /\
-       read RIP s = word (pc + 20) /\
+  (\s. bytes_loaded s (word pc) mlkem_keccak_f1600_x86_mc_2 /\
+       read RIP s = word (pc + 17) /\
        read RSP s = stackpointer /\
        C_ARGUMENTS [bitstate_in; rc_pointer] s /\
                 wordlist_from_memory(rc_pointer,24) s = rc_table /\
@@ -580,7 +577,7 @@ let WORDLIST_FROM_MEMORY_CONV =
 
   REWRITE_TAC[SOME_FLAGS] THEN
   MAP_EVERY X_GEN_TAC [`rc_pointer:int64`; `pc:num`] THEN
-  REWRITE_TAC [(REWRITE_CONV [mlkem_keccak_f1600_x86_tmc_2] THENC LENGTH_CONV) `LENGTH mlkem_keccak_f1600_x86_tmc_2`] THEN
+  REWRITE_TAC [(REWRITE_CONV [mlkem_keccak_f1600_x86_mc_2] THENC LENGTH_CONV) `LENGTH mlkem_keccak_f1600_x86_mc_2`] THEN
 
     MAP_EVERY X_GEN_TAC [`stackpointer:int64`;`bitstate_in:int64`;`A:int64 list`] THEN
 
@@ -604,7 +601,7 @@ let WORDLIST_FROM_MEMORY_CONV =
     ENSURES_WHILE_PAUP_TAC
     `0` (* loop_body begin number *)
     `12` (* loop_body end number *)
-    `pc + 0x64` (* loop body start PC *)
+    `pc + 0x60` (* loop body start PC *)
     `pc + 0x630` (* loop backedge branch PC -- including the jmp *) 
     `\i s. // loop invariant at the end of the iteration
             (read R8 s = word (2*i) /\
@@ -613,7 +610,7 @@ let WORDLIST_FROM_MEMORY_CONV =
             read RSI s = stackpointer /\
             wordlist_from_memory(rc_pointer,24) s = rc_table /\
             wordlist_from_memory(bitstate_in,25) s = MAP2 (\(x:bool) (y:(64)word). (if x then (word_not y) else y)) (
-              [false; false;  true;  false; false; 
+              [false; true;  true;  false; false; 
               false; false; false; true;  false; 
               false; false; true;  false; false; 
               false; false; true;  false; false;
@@ -641,7 +638,8 @@ let WORDLIST_FROM_MEMORY_CONV =
           X86_STEPS_TAC MLKEM_KECCAK_F1600_EXEC_2 (2--6) THEN
 
             X86_STEPS_TAC MLKEM_KECCAK_F1600_EXEC_2 (7--7) THEN
-            X86_STEPS_TAC MLKEM_KECCAK_F1600_EXEC_2 (8--13) THEN
+
+            X86_STEPS_TAC MLKEM_KECCAK_F1600_EXEC_2 (8--14) THEN
 
           ENSURES_FINAL_STATE_TAC THEN ASM_REWRITE_TAC[] THEN
 
@@ -665,8 +663,6 @@ let WORDLIST_FROM_MEMORY_CONV =
           GHOST_INTRO_TAC `init_rcx:int64` `read RCX` THEN
           GHOST_INTRO_TAC `init_rdx:int64` `read RDX` THEN
           GHOST_INTRO_TAC `init_rbp:int64` `read RBP` THEN
-          GHOST_INTRO_TAC `init_r8:int64` `read R8` THEN
-          GHOST_INTRO_TAC `init_r15:int64` `read R15` THEN
 
           
 
