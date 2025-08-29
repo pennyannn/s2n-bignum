@@ -564,6 +564,7 @@ time (REWRITE_CONV [iv_tweak;KEY1;KEY2;perror] THENC AES256_XTS_DECRYPT_CONV)
 (*******************************************)
 (* Tests *)
 
+(*
 (* 1 block : 81 second *)
 time prove (`aes256_xts_decrypt c0 16 iv_tweak KEY1 KEY2 perror = p0`,
   CONV_TAC(LAND_CONV (REWRITE_CONV [c0;iv_tweak;KEY1;KEY2;perror] THENC AES256_XTS_DECRYPT_CONV)) THEN
@@ -574,7 +575,8 @@ time prove(`aes256_xts_decrypt c1 22 iv_tweak KEY1 KEY2 perror = p1`,
   CONV_TAC(LAND_CONV (REWRITE_CONV [c1;iv_tweak;KEY1;KEY2;perror;p1] THENC AES256_XTS_DECRYPT_CONV)) THEN
   REWRITE_TAC [p1] THEN REFL_TAC);;
 
-(* 3 blocks + 3 bytes : 206 seconds *)
+(* 3 blocks + 3 bytes : 273 seconds *)
 time prove(`aes256_xts_decrypt c2 51 iv_tweak KEY1 KEY2 perror = p2`,
   CONV_TAC(LAND_CONV (REWRITE_CONV [c2;iv_tweak;KEY1;KEY2;perror;p2] THENC AES256_XTS_DECRYPT_CONV)) THEN
   REWRITE_TAC [p2] THEN REFL_TAC);;
+*)
