@@ -838,3 +838,179 @@ let AES_XTS_DECRYPT_CORRECT = prove(
     ARM_ACCSTEPS_TAC AES_XTS_DECRYPT_EXEC [] (127--137) THEN
     ENSURES_FINAL_STATE_TAC THEN ASM_REWRITE_TAC []
 );;
+
+
+(*******************************************)
+(* Full proof *)
+
+(* Taken from Amanda's code at https://github.com/amanda-zx/s2n-bignum/blob/ed25519/arm/sha512/utils.ml *)
+
+let byte_list_at = define
+  `byte_list_at (m : byte list) (m_p : int64) s =
+    ! i. i < LENGTH m ==> read (memory :> bytes8(word_add m_p (word i))) s = EL i m`;;
+
+let tail_len_lt_16_lemma = prove(
+  `!tail_len:int64.
+    word_and len (word 0xf) = tail_len ==> val tail_len < 16`,
+  BITBLAST_TAC
+);;
+
+let num_blocks_ge_80_lemma = prove(
+  `!num_blocks:int64.
+    word_and len (word 0xfffffffffffffff0) = num_blocks /\ val len >= 0x50
+    ==> val num_blocks >= 0x50`,
+  BITBLAST_TAC
+);;
+
+let crock_lemma = prove(
+  `!a:num b:num. a >= b /\ b > 0 ==> ~(a DIV b = 0)`,
+  REPEAT GEN_TAC THEN
+  MP_TAC (SPECL [`a:num`; `b:num`] DIV_EQ_0) THEN
+  ARITH_TAC
+);;
+
+let word_split_lemma = prove(
+  `!len:int64. len = word_add (word_and len (word 0xf))
+                              (word_and len (word 0xfffffffffffffff0))`,
+  BITBLAST_TAC);;
+
+let blt_lemma = prove(
+  `!len:int64 x:num.
+    val len >= x /\ val len < 2 EXP 63
+    ==> (ival (word_sub len (word x)) < &0 <=> ~(ival len - &x = ival (word_sub len (word x))))`,
+  CHEAT_TAC);;
+
+(* TODO: The ending pc will be an if-then-else depending on which branch it goes to *)
+let AES_XTS_DECRYPT_CORRECT = prove(
+  `!ct_ptr pt_ptr ct pt_init key1_ptr key2_ptr iv_ptr iv len
+    k00 k01 k02 k03 k04 k05 k06 k07 k08 k09 k0a k0b k0c k0d k0e
+    k10 k11 k12 k13 k14 k15 k16 k17 k18 k19 k1a k1b k1c k1d k1e
+    pc.
+    nonoverlapping (word pc, LENGTH aes_xts_decrypt_mc) (pt_ptr, 16)
+    /\ val len >= 16 /\ val len <= 2 EXP 24
+    ==> ensures arm
+    (\s. aligned_bytes_loaded s (word pc) aes_xts_decrypt_mc /\
+         read PC s = word (pc + 0x1c) /\
+         C_ARGUMENTS [ct_ptr; pt_ptr; len; key1_ptr; key2_ptr; iv_ptr] s /\
+         byte_list_at ct ct_ptr s /\
+         byte_list_at pt_init pt_ptr s /\
+         read(memory :> bytes128 iv_ptr) s = iv /\
+         set_key_schedule s key1_ptr k00 k01 k02 k03 k04 k05 k06 k07 k08 k09 k0a k0b k0c k0d k0e /\
+         set_key_schedule s key2_ptr k10 k11 k12 k13 k14 k15 k16 k17 k18 k19 k1a k1b k1c k1d k1e)
+    (\s. read PC s = word (pc + 0xa10) /\
+         byte_list_at (aes256_xts_decrypt ct (val len) iv
+              [k00; k01; k02; k03; k04; k05; k06; k07; k08; k09; k0a; k0b; k0c; k0d; k0e]
+              [k10; k11; k12; k13; k14; k15; k16; k17; k18; k19; k1a; k1b; k1c; k1d; k1e]
+              pt_init) pt_ptr s
+         )
+    (MAYCHANGE [PC] ,, MAYCHANGE [events] ,,
+     MAYCHANGE [X21;X2;X6;X4;X9;X10;X19;X22;X11;X7;X0;X1;X8] ,,
+     MAYCHANGE [Q6;Q1;Q0;Q8;Q16;Q17;Q12;Q13;Q14;Q15;Q4;Q5;Q18;Q19;Q20;Q21;Q22;Q23;Q7;Q29;Q24] ,,
+     MAYCHANGE SOME_FLAGS,, MAYCHANGE [memory :> bytes128 pt_ptr])
+    `,
+    REWRITE_TAC [(REWRITE_CONV [aes_xts_decrypt_mc] THENC LENGTH_CONV) `LENGTH aes_xts_decrypt_mc`] THEN
+    REWRITE_TAC[set_key_schedule; C_ARGUMENTS; SOME_FLAGS; NONOVERLAPPING_CLAUSES; byte_list_at] THEN
+    REPEAT STRIP_TAC THEN
+
+    (* Break len into full blocks and tail *)
+    SUBGOAL_THEN `len:int64 = word_add (word_and len (word 0xf))
+      (word_and len (word 0xfffffffffffffff0))` ASSUME_TAC THENL
+    [REWRITE_TAC[word_split_lemma]; ALL_TAC] THEN
+    ABBREV_TAC `num_blocks:int64 = word_and len (word 0xfffffffffffffff0)` THEN
+    ABBREV_TAC `tail_len:int64 = word_and len (word 0xf)` THEN
+    ABBREV_TAC `key1:int128 list = [k00; k01; k02; k03; k04; k05; k06; k07; k08; k09; k0a; k0b; k0c; k0d; k0e]` THEN
+    ABBREV_TAC `key2:int128 list = [k10; k11; k12; k13; k14; k15; k16; k17; k18; k19; k1a; k1b; k1c; k1d; k1e]` THEN
+
+    (* Case splits on length:
+      len < 16 -- error case
+      len < 32 -- one block, or one block and a tail
+      len < 48 -- two blocks, or two blocks and a tail
+      len < 64 -- three blocks, or three blocks and a tail
+      len < 80 -- four blocks, or four blocks and a tail
+      len >= 80 -- five blocks and up
+     *)
+    ASM_CASES_TAC `val (len:int64) < 80` THENL [CHEAT_TAC; ALL_TAC] THEN
+
+    (* Setting up the loop invariant *)
+    (* Invariant:
+       X0 holds ct_ptr
+       X1 hols pt_ptr
+       X3 holds key1_ptr
+       X4 holds key2_ptr
+       X5 holds iv_ptr (may not need)
+       X21 holds tail_len
+
+       X2 holds number of blocks left
+       X8 holds number of 5xblocks left
+       Q6, Q8, Q9, Q10, Q11 holds the next 5 tweaks
+       Up to the new five blocks in output pt_ptr matche the specification
+    *)
+    ENSURES_WHILE_DOWN_TAC
+      `(val (num_blocks:int64) DIV 0x50):num` `pc + 0x170` `pc + 0x460`
+      `\i s.
+             read X0 s = ct_ptr /\
+             read X1 s = pt_ptr /\
+             read X3 s = key1_ptr /\
+             read X4 s = key2_ptr /\
+             read X21 s = tail_len /\
+             read X2 s = word_sub num_blocks (word_mul (word 0x50) (word i)) /\
+             read X8 s = word_sub (word (val num_blocks DIV 0x50)) (word i) /\
+             read Q6 s = calculate_tweak (i * 5) iv key2 /\
+             read Q8 s = calculate_tweak (i * 5 + 1) iv key2 /\
+             read Q9 s = calculate_tweak (i * 5 + 2) iv key2 /\
+             read Q10 s = calculate_tweak (i * 5 + 3) iv key2 /\
+             read Q11 s = calculate_tweak (i * 5 + 4) iv key2 /\
+             byte_list_at (aes256_xts_decrypt ct (i * 5 * 16) iv key1 key2 pt_init) pt_ptr s
+      ` THEN
+    ASM_REWRITE_TAC[] THEN REPEAT CONJ_TAC THENL
+    [
+      (* Subgoal 1. Bound of loop is not zero *)
+      SUBGOAL_THEN `val (num_blocks:int64) >= 0x50` ASSUME_TAC THENL
+      [
+        (* First establish len >= 0x50 *)
+        SUBGOAL_THEN `val (len:int64) >= 0x50` ASSUME_TAC THENL
+        [ASM_ARITH_TAC; ALL_TAC] THEN
+        (* Then establish num_blocks >= 50 *)
+        MATCH_MP_TAC num_blocks_ge_80_lemma THEN CONJ_TAC THENL
+        [ASM_REWRITE_TAC[];ASM_REWRITE_TAC[]];
+
+        (* Prove subgoal1 using the lemma: a >= b /\ b > 0 ==> ~(a DIV b = 0) *)
+        MATCH_MP_TAC crock_lemma THEN CONJ_TAC THENL
+        [ASM_REWRITE_TAC[]; ARITH_TAC]
+      ];
+
+      (* Subgoal 2. Invariant holds before entering the loop *)
+      (* ===> Symbolic Simulation: Start symbolic simulation*)
+      ENSURES_INIT_TAC "s0" THEN
+      ARM_ACCSTEPS_TAC AES_XTS_DECRYPT_EXEC [] (1--2) THEN
+      (* Discharge if condition *)
+      SUBGOAL_THEN
+        `ival (word_sub (word_add (tail_len:int64) (num_blocks:int64)) (word 0x10)) < &0x0 <=>
+          ~(ival (word_add tail_len num_blocks) - &0x10 =
+            ival (word_sub (word_add tail_len num_blocks) (word 0x10)))` ASSUME_TAC THENL
+      [ MATCH_MP_TAC blt_lemma THEN CONJ_TAC THENL
+        [ UNDISCH_TAC `len:int64 = word_add tail_len num_blocks` THEN
+          UNDISCH_TAC `val (len:int64) >= 16` THEN
+          WORD_ARITH_TAC;
+          UNDISCH_TAC `len:int64 = word_add tail_len num_blocks` THEN
+          UNDISCH_TAC `val (len:int64) <= 2 EXP 24` THEN
+          WORD_ARITH_TAC];
+        ALL_TAC] THEN
+      POP_ASSUM(fun th -> RULE_ASSUM_TAC(REWRITE_RULE[th])) THEN
+      (* ===> Symbolic Simulation: Symbolic execution for initialization of tweak *)
+      ARM_ACCSTEPS_TAC AES_XTS_DECRYPT_EXEC [] (3--69) THEN
+      (* Prove Q6 stores initial tweak *)
+      FIRST_X_ASSUM(MP_TAC o SPEC
+        `(aes256_encrypt iv [k10; k11; k12; k13; k14; k15; k16; k17; k18; k19; k1a; k1b; k1c; k1d; k1e]):int128`
+        o  MATCH_MP (MESON[] `read Q6 s = a ==> !a'. a = a' ==> read Q6 s = a'`)) THEN
+      ANTS_TAC THENL [AESENC_TAC; DISCH_TAC] THEN
+      (* ===> Symbolic Simulation: Symbolic simulating untill next branch *)
+      ARM_ACCSTEPS_TAC AES_XTS_DECRYPT_EXEC [] (70--89) THEN
+      (* TODO: think about how to treat this case split *)
+      CHEAT_TAC
+      ;
+      CHEAT_TAC;
+      CHEAT_TAC;
+      CHEAT_TAC
+    ]
+);;
