@@ -1963,8 +1963,72 @@ let READ_BYTES_AND_BYTE128_MERGE = prove(
   `!(pt_ptr:int64) (sz:num) (x:byte list) (s:armstate).
     sz + 16 <= LENGTH x ==>
     read (memory :> bytes (pt_ptr,sz + 0x10)) s = num_of_bytelist (SUB_LIST (0, sz + 0x10) x)
-    ==> read (memory :> bytes (pt_ptr, sz)) s = num_of_bytelist (SUB_LIST (0, sz) x)`,
-  CHEAT_TAC);;
+    ==> (read (memory :> bytes (pt_ptr, sz)) s = num_of_bytelist (SUB_LIST (0, sz) x) /\
+         read (memory :> bytes128 (word_add pt_ptr (word sz))) s = bytes_to_int128 (SUB_LIST (sz, 0x10) x))`,
+  REPEAT GEN_TAC THEN
+  STRIP_TAC THEN
+  REWRITE_TAC[READ_MEMORY_BYTES128_BYTES] THEN
+
+  SUBGOAL_THEN `sz <= LENGTH (x:byte list)` ASSUME_TAC THENL
+  [ UNDISCH_TAC `sz + 16 <= LENGTH (x:byte list)` THEN ARITH_TAC; ALL_TAC ] THEN
+
+  SUBGOAL_THEN `16 <= LENGTH (x:byte list) - sz` ASSUME_TAC THENL
+  [ UNDISCH_TAC `sz + 16 <= LENGTH (x:byte list)` THEN ARITH_TAC; ALL_TAC ] THEN
+
+  SUBGOAL_THEN `read (memory :> bytes (pt_ptr, sz + 16)) s =
+                read (memory :> bytes (pt_ptr, sz)) s +
+                2 EXP (8 * sz) * (read (memory :> bytes (word_add pt_ptr (word sz), 16)) s)` SUBST1_TAC THENL
+  [ REWRITE_TAC[READ_COMPONENT_COMPOSE] THEN
+    REWRITE_TAC[READ_BYTES_COMBINE]; ALL_TAC] THEN
+
+  IMP_REWRITE_TAC[NUM_OF_BYTELIST_OF_SUB_LIST] THEN
+  REWRITE_TAC[READ_COMPONENT_COMPOSE] THEN
+
+  DISCH_TAC THEN
+  CONJ_TAC THENL
+  [ (* First part: word (read (memory :> bytes (word_add pt_ptr (word sz),0x10)) s) =
+       bytes_to_int128 (SUB_LIST (sz,0x10) x)*)
+    FIRST_X_ASSUM(MP_TAC o AP_TERM `\x. x MOD 2 EXP (8 * sz)`) THEN
+    ASM_REWRITE_TAC[] THEN
+    REWRITE_TAC[MOD_MULT_ADD; MOD_LT] THEN
+    REWRITE_TAC[READ_BYTES_MOD; MIN] THEN
+    SIMP_TAC[ARITH_RULE `len <= len`] THEN
+    DISCH_TAC THEN
+    IMP_REWRITE_TAC[MOD_LT] THEN
+    MP_TAC (SPEC `(SUB_LIST (0,sz) x:byte list)` NUM_OF_BYTELIST_BOUND) THEN
+    IMP_REWRITE_TAC[LENGTH_SUB_LIST; SUB_0; MIN] THEN
+    SUBGOAL_THEN `256 EXP sz = 2 EXP (8 * sz)` SUBST1_TAC THENL
+    [ REWRITE_TAC[ARITH_RULE `256 = 2 EXP 8`; EXP_EXP]; ALL_TAC] THEN
+    SIMP_TAC[];
+    ALL_TAC
+  ] THEN
+  (* Second part: word (read (bytes (word_add pt_ptr (word sz),0x10)) (read memory s)) =
+      bytes_to_int128 (SUB_LIST (sz,0x10) x) *)
+  FIRST_X_ASSUM(MP_TAC o AP_TERM `\x. x DIV 2 EXP (8 * sz)`) THEN
+  ASM_REWRITE_TAC[] THEN
+  SUBGOAL_THEN `~(0x2 EXP (0x8 * sz) = 0x0)` ASSUME_TAC THENL
+  [ REWRITE_TAC[EXP_EQ_0; ARITH_EQ]; ALL_TAC] THEN
+  IMP_REWRITE_TAC[DIV_MULT_ADD] THEN
+  SUBGOAL_THEN `read (bytes (pt_ptr,sz)) (read memory s) < 0x2 EXP (0x8 * sz)` ASSUME_TAC THENL
+  [ REWRITE_TAC[READ_BYTES_BOUND]; ALL_TAC] THEN
+  SUBGOAL_THEN `num_of_bytelist (SUB_LIST (0x0,sz) x) < 0x2 EXP (0x8 * sz)` ASSUME_TAC THENL
+  [ MP_TAC (SPEC `(SUB_LIST (0,sz) x:byte list)` NUM_OF_BYTELIST_BOUND) THEN
+    IMP_REWRITE_TAC[LENGTH_SUB_LIST; SUB_0; MIN] THEN
+    SUBGOAL_THEN `256 EXP sz = 2 EXP (8 * sz)` SUBST1_TAC THENL
+    [ REWRITE_TAC[ARITH_RULE `256 = 2 EXP 8`; EXP_EXP]; ALL_TAC] THEN SIMP_TAC[]; ALL_TAC] THEN
+  IMP_REWRITE_TAC[DIV_LT; ADD] THEN
+  DISCH_TAC THEN
+
+  ONCE_REWRITE_TAC[GSYM VAL_EQ] THEN
+  IMP_REWRITE_TAC[VAL_OF_BYTES_TO_INT128_EQ_NUM_OF_BYTELIST] THEN
+  REWRITE_TAC[LENGTH_SUB_LIST; MIN] THEN ASM_SIMP_TAC[] THEN
+  REWRITE_TAC[VAL_WORD; DIMINDEX_128] THEN
+  SUBGOAL_THEN `num_of_bytelist (SUB_LIST (sz,0x10) x) < 2 EXP 0x80` ASSUME_TAC THENL
+  [ MP_TAC (SPEC `(SUB_LIST (sz,0x10) x:byte list)` NUM_OF_BYTELIST_BOUND) THEN
+    IMP_REWRITE_TAC[LENGTH_SUB_LIST; SUB_0; MIN] THEN
+    ARITH_TAC; ALL_TAC] THEN
+  IMP_REWRITE_TAC[MOD_LT]
+  );;
 
 let READ_BYTES_AND_BYTE128_SPLIT = prove(
   `!(pt_ptr:int64) (sz:num) (x:byte list) (s:armstate).
